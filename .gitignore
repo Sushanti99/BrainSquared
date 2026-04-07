@@ -1,0 +1,18 @@
+# credentials — never commit these
+.env
+credentials.json
+token.json
+*.json.bak
+
+# Claude Code local config
+.claude/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# macOS
+.DS_Store
