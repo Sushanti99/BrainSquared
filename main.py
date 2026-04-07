@@ -8,6 +8,8 @@ Usage:
 import argparse
 from pathlib import Path
 
+__version__ = "1.0.0"
+
 
 def cmd_daily(args):
     from context_builder import build_context
@@ -30,6 +32,7 @@ def main():
         description="todos-with-obsidian — Obsidian daily notes + AI chat across your data"
     )
     parser.add_argument("--vault", help="Override vault path from .env", default=None)
+    parser.add_argument("--version", action="version", version=f"todos-with-obsidian {__version__}")
     sub = parser.add_subparsers(dest="command")
     sub.required = True
 
