@@ -26,6 +26,7 @@ def generate(bundle: ContextBundle, vault_path: Path = config.VAULT_PATH) -> Pat
         (["calendar"] if bundle.calendar_events else [])
         + (["gmail"] if bundle.email_items else [])
         + (["notion"] if bundle.notion_tasks else [])
+        + (["apple_notes"] if (bundle.apple_notes_tasks or bundle.apple_notes_recent) else [])
         + (["obsidian"] if bundle.vault_notes else [])
         + (["news"] if bundle.reading_list else [])
     )
@@ -107,6 +108,64 @@ def generate(bundle: ContextBundle, vault_path: Path = config.VAULT_PATH) -> Pat
             lines.append(f"- [ ] {text} *(from: [[{Path(path).stem}]])*")
     else:
         lines.append("*No open tasks in vault.*")
+
+    lines += [
+        "",
+        "## Apple Notes",
+        "",
+        "### Open Checklists",
+        "",
+    ]
+
+    if bundle.apple_notes_tasks:
+        for t in bundle.apple_notes_tasks:
+            meta_parts = []
+            if t.get("note_title"):
+                meta_parts.append(t["note_title"])
+            if t.get("folder"):
+                meta_parts.append(t["folder"])
+            meta = " · ".join(meta_parts)
+            if meta:
+                lines.append(f"- [ ] {t['title']} *(from: {meta})*")
+            else:
+                lines.append(f"- [ ] {t['title']}")
+    else:
+        lines.append("*No open checklist items found in Apple Notes.*")
+
+    lines += [
+        "",
+        "### Recently Edited (24h)",
+        "",
+    ]
+
+    if bundle.apple_notes_recent:
+        for n in bundle.apple_notes_recent:
+            folder = n.get("folder", "")
+            modified_at = n.get("modified_at", "")
+            if modified_at:
+                try:
+                    import datetime
+
+                    mod_label = datetime.datetime.fromisoformat(
+                        modified_at.replace("Z", "+00:00")
+                    ).strftime("%H:%M")
+                except Exception:
+                    mod_label = modified_at
+            else:
+                mod_label = ""
+
+            meta_parts = []
+            if folder:
+                meta_parts.append(folder)
+            if mod_label:
+                meta_parts.append(f"updated {mod_label}")
+            meta = ", ".join(meta_parts)
+            if meta:
+                lines.append(f"- {n['title']} *({meta})*")
+            else:
+                lines.append(f"- {n['title']}")
+    else:
+        lines.append("*No recently edited Apple Notes in the last 24 hours.*")
 
     lines += [
         "",

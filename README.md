@@ -1,6 +1,6 @@
 # todos-with-obsidian
 
-Connects your **Gmail, Google Calendar, and Notion** to your **Obsidian vault** — generating a personalised daily note every morning with everything you need: today's events, unread emails, open tasks, and a reading list curated to your interests.
+Connects your **Gmail, Google Calendar, Notion, and Apple Notes** to your **Obsidian vault** — generating a personalised daily note every morning with everything you need: today's events, unread emails, open tasks, recent Apple Notes updates, and a reading list curated to your interests.
 
 No AI API key needed. No database IDs to copy. One command to set up.
 
@@ -23,6 +23,13 @@ No AI API key needed. No database IDs to copy. One command to set up.
 ## Notion Tasks
 - [ ] Finish Q2 roadmap · Due: Apr 9 · [Open](https://notion.so/...)
 - [ ] Review pull request for onboarding flow
+
+## Apple Notes
+### Open Checklists
+- [ ] Renew car insurance *(from: Admin/April)*
+
+### Recently Edited (24h)
+- Project ideas *(Work, updated 21:10)*
 
 ## Open Obsidian Tasks
 - [ ] Read chapter 3 of [[Thinking Fast and Slow]] *(from: [[Books/reading-list]])*
@@ -50,6 +57,7 @@ python setup.py
 `setup.py` opens a browser for each service and saves your credentials to `.env`. It handles:
 - **Google** — opens Cloud Console, watches for `credentials.json`, then runs the OAuth browser flow automatically
 - **Notion** — opens the integrations page, you paste one key, done
+- **Apple Notes (macOS)** — local integration via Notes app permissions (no API key)
 
 Each integration is optional. If you skip one, that section just says *"not connected"* in your daily note.
 
@@ -114,6 +122,17 @@ Default sources: Hacker News · TechCrunch · The Verge · arXiv AI · VentureBe
 
 ---
 
+## Apple Notes setup (macOS)
+
+Apple Notes integration is local and optional. On first run, macOS may ask permission to let Terminal/Python control Notes.
+
+If you don't see Apple Notes data in your daily note:
+1. Open **System Settings → Privacy & Security → Automation**
+2. Enable automation access for your terminal app (or Python) to control **Notes**
+3. Run `python main.py daily` again
+
+---
+
 ## Google setup (if you get stuck)
 
 After running `setup.py`, if you see a 403 error about APIs not enabled:
@@ -133,6 +152,7 @@ obsidian_reader.py   Reads and parses the Obsidian vault
 gmail_client.py      Gmail OAuth2 integration
 calendar_client.py   Google Calendar integration
 notion_client.py     Notion API — reads all pages and databases shared with integration
+apple_notes_client.py Apple Notes local integration (macOS via osascript)
 news_client.py       Fetches and ranks articles from RSS/HN by vault interests
 context_builder.py   Aggregates all sources into one bundle
 daily_note.py        Renders and writes the daily markdown note

@@ -207,6 +207,52 @@ def setup_notion(env: dict):
 
 
 
+def setup_apple_notes(env: dict):
+    section("Apple Notes (local)")
+
+    if sys.platform != "darwin":
+        env["APPLE_NOTES_ENABLED"] = "false"
+        skip("Skipped — Apple Notes integration is available on macOS only.")
+        return
+
+    enabled_default = env.get("APPLE_NOTES_ENABLED", "true")
+    enable = ask("Enable Apple Notes integration? (true/false)", enabled_default).lower()
+    if enable not in {"true", "false"}:
+        enable = enabled_default.lower()
+    env["APPLE_NOTES_ENABLED"] = enable
+
+    if enable != "true":
+        skip("Disabled. Re-run setup.py to enable Apple Notes later.")
+        return
+
+    env.setdefault("APPLE_NOTES_RECENT_HOURS", "24")
+    env.setdefault("APPLE_NOTES_MAX_TASKS", "50")
+    env.setdefault("APPLE_NOTES_MAX_RECENT", "20")
+    env.setdefault("APPLE_NOTES_INCLUDE_FOLDERS", "")
+    env.setdefault("APPLE_NOTES_EXCLUDE_FOLDERS", "")
+
+    env["APPLE_NOTES_RECENT_HOURS"] = ask(
+        "Recent edited window in hours", env["APPLE_NOTES_RECENT_HOURS"]
+    )
+    env["APPLE_NOTES_MAX_TASKS"] = ask(
+        "Max Apple Notes checklist items", env["APPLE_NOTES_MAX_TASKS"]
+    )
+    env["APPLE_NOTES_MAX_RECENT"] = ask(
+        "Max recently edited notes", env["APPLE_NOTES_MAX_RECENT"]
+    )
+    env["APPLE_NOTES_INCLUDE_FOLDERS"] = ask(
+        "Include folders (comma-separated, blank = all)", env["APPLE_NOTES_INCLUDE_FOLDERS"]
+    )
+    env["APPLE_NOTES_EXCLUDE_FOLDERS"] = ask(
+        "Exclude folders (comma-separated)", env["APPLE_NOTES_EXCLUDE_FOLDERS"]
+    )
+
+    print()
+    print("  First run will trigger a macOS Automation permission prompt for Notes.")
+    print("  If blocked later: System Settings → Privacy & Security → Automation.")
+    ok("Apple Notes configured")
+
+
 def setup_anthropic(env: dict):
     section("Anthropic — Claude chat")
 
@@ -242,6 +288,7 @@ def main():
     setup_vault(env)
     setup_google(env)
     setup_notion(env)
+    setup_apple_notes(env)
 
     save_env(env)
 

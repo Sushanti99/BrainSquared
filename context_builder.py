@@ -5,6 +5,7 @@ import obsidian_reader
 import gmail_client
 import calendar_client
 import notion_client
+import apple_notes_client
 import config
 
 
@@ -14,6 +15,8 @@ class ContextBundle:
     calendar_events: list = field(default_factory=list)
     email_items: list = field(default_factory=list)
     notion_tasks: list = field(default_factory=list)
+    apple_notes_tasks: list = field(default_factory=list)
+    apple_notes_recent: list = field(default_factory=list)
     reading_list: list = field(default_factory=list)
     today: str = field(default_factory=lambda: date.today().isoformat())
 
@@ -48,6 +51,26 @@ class ContextBundle:
                     line += f" (due: {t['due']})"
                 if t["status"]:
                     line += f" [{t['status']}]"
+                parts.append(line)
+            parts.append("")
+
+        if self.apple_notes_tasks:
+            parts.append("## Apple Notes Open Tasks")
+            for t in self.apple_notes_tasks:
+                line = f"- {t['title']} (from: {t['note_title']})"
+                if t["folder"]:
+                    line += f" [{t['folder']}]"
+                parts.append(line)
+            parts.append("")
+
+        if self.apple_notes_recent:
+            parts.append("## Apple Notes Recently Edited (24h)")
+            for n in self.apple_notes_recent:
+                line = f"- {n['title']}"
+                if n["folder"]:
+                    line += f" [{n['folder']}]"
+                if n.get("snippet"):
+                    line += f" — {n['snippet'][:100]}"
                 parts.append(line)
             parts.append("")
 
@@ -98,6 +121,17 @@ def build_context() -> ContextBundle:
         print(f"  [notion] {len(bundle.notion_tasks)} open tasks")
     except Exception as e:
         print(f"  [notion] skipped: {e}")
+
+    try:
+        apple = apple_notes_client.get_apple_notes_data()
+        bundle.apple_notes_tasks = apple.get("tasks", [])
+        bundle.apple_notes_recent = apple.get("recent_notes", [])
+        print(
+            f"  [apple_notes] {len(bundle.apple_notes_tasks)} tasks, "
+            f"{len(bundle.apple_notes_recent)} recent notes"
+        )
+    except Exception as e:
+        print(f"  [apple_notes] skipped: {e}")
 
     try:
         from news_client import get_reading_list
