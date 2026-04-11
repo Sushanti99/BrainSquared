@@ -52,7 +52,7 @@ def _build_default_config(vault_path: Path, agent: str = "claude-code") -> dict[
             },
             "codex": {
                 "command": "codex",
-                "args": ["exec", "--json"],
+                "args": ["exec", "--json", "--sandbox", "workspace-write"],
             },
         },
         "integrations": {

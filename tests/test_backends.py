@@ -26,3 +26,16 @@ def test_codex_build_command_adds_skip_git_repo_check_for_non_repo(tmp_path, mon
     command = backend.build_command("hello")
 
     assert "--skip-git-repo-check" in command
+
+
+def test_codex_build_command_adds_workspace_write_when_missing(tmp_path, monkeypatch):
+    app_cfg = default_app_config(tmp_path / "vault", "codex")
+    app_cfg.agents["codex"].args = ["exec", "--json"]
+    backend = CodexBackend(app_cfg)
+    monkeypatch.setattr("brain.agent_backends.path_is_git_repo", lambda path: True)
+
+    command = backend.build_command("hello")
+
+    assert "--sandbox" in command
+    sandbox_index = command.index("--sandbox")
+    assert command[sandbox_index + 1] == "workspace-write"

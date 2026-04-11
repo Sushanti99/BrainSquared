@@ -131,6 +131,8 @@ class CodexBackend(BaseBackend):
     def build_command(self, prompt: str, output_last_message_path: Path | None = None) -> list[str]:
         config = self.command_config
         command = [config.command, *config.args, "-C", str(self.app_cfg.vault.path)]
+        if not command_has_flag(command, "--sandbox"):
+            command.extend(["--sandbox", "workspace-write"])
         if not path_is_git_repo(self.app_cfg.vault.path):
             command.append("--skip-git-repo-check")
         if output_last_message_path is not None:
@@ -281,6 +283,10 @@ def path_is_git_repo(path: Path) -> bool:
     except Exception:
         return False
     return completed.returncode == 0
+
+
+def command_has_flag(command: list[str], flag: str) -> bool:
+    return flag in command
 
 
 def _read_output_last_message(path: Path) -> str | None:

@@ -39,6 +39,8 @@ agents:
     args:
       - exec
       - --json
+      - --sandbox
+      - workspace-write
 
 integrations:
   enable_daily_context: true
