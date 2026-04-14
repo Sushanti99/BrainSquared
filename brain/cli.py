@@ -46,6 +46,19 @@ def build_parser() -> argparse.ArgumentParser:
     daily_parser.add_argument("--force", action="store_true")
     daily_parser.set_defaults(func=cmd_daily)
 
+    seed_parser = subparsers.add_parser(
+        "seed",
+        help="Create and populate a new Brain vault from your existing tools",
+    )
+    seed_parser.add_argument("--vault", required=True, help="Path for the new Brain vault")
+    seed_parser.add_argument("--agent", choices=["claude-code", "codex"], default="claude-code")
+    seed_parser.add_argument("--from-obsidian", metavar="PATH", help="Import notes from an existing Obsidian vault")
+    seed_parser.add_argument("--from-notion", action="store_true", help="Import from Notion (requires NOTION_API_KEY)")
+    seed_parser.add_argument("--from-gmail", action="store_true", help="Import context from Gmail (requires Google auth)")
+    seed_parser.add_argument("--from-calendar", action="store_true", help="Import commitments from Google Calendar")
+    seed_parser.add_argument("--dry-run", action="store_true", help="Collect data and write seed input but skip agent synthesis")
+    seed_parser.set_defaults(func=cmd_seed)
+
     return parser
 
 
@@ -137,6 +150,27 @@ def cmd_daily(args: argparse.Namespace) -> int:
     env_cfg = load_env_config()
     path = generate_daily_note(app_cfg, env_cfg, force=args.force)
     print(path)
+    return 0
+
+
+def cmd_seed(args: argparse.Namespace) -> int:
+    from brain.seeder import SeedSources, run_seed
+
+    sources = SeedSources(
+        from_obsidian=Path(args.from_obsidian).expanduser() if args.from_obsidian else None,
+        from_notion=args.from_notion,
+        from_gmail=args.from_gmail,
+        from_calendar=args.from_calendar,
+    )
+    result = run_seed(
+        vault_path=Path(args.vault),
+        agent=args.agent,
+        sources=sources,
+        dry_run=args.dry_run,
+    )
+    if result.sources_used:
+        print(f"\nVault seeded at: {result.vault_path}")
+        print(f"Sources used: {', '.join(result.sources_used)}")
     return 0
 
 

@@ -1,5 +1,5 @@
 """Google Calendar integration — fetches today's events."""
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from zoneinfo import ZoneInfo
 from googleapiclient.discovery import build
 from gmail_client import get_credentials
@@ -47,4 +47,45 @@ def get_todays_events(timezone_name: str = "America/Los_Angeles") -> list[dict]:
         return events
     except Exception as e:
         print(f"  [calendar] skipped: {e}")
+        return []
+
+
+def get_events_range(
+    days_back: int = 30,
+    days_forward: int = 60,
+    timezone_name: str = "America/Los_Angeles",
+) -> list[dict]:
+    """Return events over a wider date range for vault seeding."""
+    if not config.GOOGLE_TOKEN_FILE.exists() and not config.GOOGLE_CREDENTIALS_FILE.exists():
+        return []
+    try:
+        creds = get_credentials()
+        service = build("calendar", "v3", credentials=creds)
+
+        tz = ZoneInfo(timezone_name)
+        now = datetime.now(tz)
+        time_min = (now.replace(hour=0, minute=0, second=0) - timedelta(days=days_back)).isoformat()
+        time_max = (now.replace(hour=23, minute=59, second=59) + timedelta(days=days_forward)).isoformat()
+
+        result = service.events().list(
+            calendarId="primary",
+            timeMin=time_min,
+            timeMax=time_max,
+            singleEvents=True,
+            orderBy="startTime",
+            maxResults=200,
+        ).execute()
+
+        events = []
+        for e in result.get("items", []):
+            start = e["start"].get("dateTime", e["start"].get("date", ""))
+            events.append({
+                "title": e.get("summary", "(no title)"),
+                "date": start[:10] if start else "",
+                "description": (e.get("description") or "")[:200],
+                "recurring": bool(e.get("recurringEventId")),
+            })
+        return events
+    except Exception as e:
+        print(f"  [calendar] range skipped: {e}")
         return []

@@ -113,6 +113,39 @@ def create_app(runtime: AppRuntime) -> FastAPI:
             }
         )
 
+    @app.get("/api/notes")
+    async def get_notes():
+        vault_paths = resolve_vault_paths(runtime.app_cfg)
+        cfg = runtime.app_cfg.vault
+        folders = [
+            (cfg.core_folder, vault_paths.core),
+            (cfg.references_folder, vault_paths.references),
+            (cfg.thoughts_folder, vault_paths.thoughts),
+            (cfg.daily_folder, vault_paths.daily),
+        ]
+        notes = []
+        for folder_name, folder_path in folders:
+            if not folder_path.exists():
+                continue
+            reverse = folder_name == cfg.daily_folder
+            for md_file in sorted(folder_path.glob("*.md"), reverse=reverse):
+                notes.append({
+                    "title": md_file.stem if folder_name == cfg.daily_folder else md_file.stem.replace("-", " ").replace("_", " ").title(),
+                    "path": f"{folder_name}/{md_file.name}",
+                    "folder": folder_name,
+                })
+        return JSONResponse({"status": "ok", "notes": notes})
+
+    @app.get("/api/notes/{note_path:path}")
+    async def get_note(note_path: str):
+        vault_root = runtime.app_cfg.vault.path
+        full_path = (vault_root / note_path).resolve()
+        if not str(full_path).startswith(str(vault_root.resolve())):
+            return JSONResponse({"status": "error", "message": "Invalid path."}, status_code=400)
+        if not full_path.exists() or full_path.suffix != ".md":
+            return JSONResponse({"status": "error", "message": "Not found."}, status_code=404)
+        return JSONResponse({"status": "ok", "path": note_path, "content": full_path.read_text(encoding="utf-8")})
+
     @app.post("/api/session/end")
     async def post_end_session():
         session = runtime.session_manager.current_session()

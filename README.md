@@ -1,118 +1,142 @@
 # brain
 
-`brain` is a local-first personal agent harness on top of an Obsidian vault.
+A local-first personal AI agent that lives inside your Obsidian vault.
 
-It can:
-- initialize or convert a vault into Brain format
-- start a local FastAPI server with a minimal browser chat UI
-- run either Claude Code or Codex against the vault
-- generate daily notes from Gmail, Google Calendar, Notion, vault tasks, and news
-- end a session by writing only a markdown summary into `thoughts/`
+You connect your existing tools — Obsidian, Gmail, Google Calendar, Notion — and Brain seeds a new vault from your real data. Then you chat with it through a minimal browser UI. The agent reads and writes your vault directly. Everything stays on your machine.
 
-The older flat scripts are still present as compatibility wrappers where needed, but the primary interface is now the installable `brain` CLI.
+---
 
-## Install
+## How it works
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -e '.[test]'
+```
+Browser UI  ──►  Brain Server  ──►  Claude Code / Codex CLI
+                                           │
+                                    Obsidian Vault (markdown files)
+                                           │
+                               Gmail · Calendar · Notion · RSS
 ```
 
-## Onboarding Integrations
+- **Obsidian is the database.** No SQLite, no Redis — just markdown files.
+- **The agent is swappable.** Claude Code or Codex, configured at startup.
+- **The UI is minimal.** One HTML file, no build step, opens instantly.
+- **Everything is local.** Your vault, your machine, your data.
 
-The old onboarding flow now lives in `bootstrap.py`:
+---
+
+## Quickstart
+
+### 1. Install
+
+```bash
+git clone https://github.com/your-username/brain
+cd brain
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e '.[test]'
+```
+
+Requires [Claude Code](https://claude.ai/code) (or Codex) installed and authenticated.
+
+### 2. Connect your tools (optional)
 
 ```bash
 python bootstrap.py
 ```
 
-It writes local credentials into `.env`. Gmail, Calendar, Notion, and custom RSS feeds remain optional.
+Walks you through Google OAuth (Gmail + Calendar), Notion API key, and RSS feeds. Writes credentials to `.env`. All integrations are optional — Brain works with just a vault.
 
-## Initialize A Vault
-
-```bash
-brain init --vault /absolute/path/to/vault --agent claude-code
-```
-
-This creates any missing Brain folders and writes:
-- `system/brain.config.yaml`
-- `system/CLAUDE.md`
-
-Existing compatible folder names such as `Daily/` are preserved through config mapping instead of being renamed automatically.
-
-## Start The App
+### 3. Seed a new vault
 
 ```bash
-brain start --vault /absolute/path/to/vault
+brain seed --vault ~/my-brain-vault \
+           --from-obsidian ~/path/to/existing-vault \
+           --from-notion \
+           --from-gmail \
+           --from-calendar
 ```
 
-This starts the local server and opens the browser UI by default. The UI supports:
-- one active websocket session
-- streaming responses
-- `Generate Daily`
-- `End & Summarize`
+Brain collects your existing data, runs it through Claude, and populates:
 
-## Generate Today’s Daily Note
+```
+my-brain-vault/
+├── core/          ← profile, projects, interests, people
+├── references/    ← reference material (if found)
+├── daily/         ← today's note with tasks, events, emails
+├── thoughts/      ← AI conversation summaries (auto-written)
+└── system/        ← config and agent instructions
+```
+
+Use `--dry-run` to inspect collected data before the agent writes anything.
+
+### 4. Start
 
 ```bash
-brain daily --vault /absolute/path/to/vault
+brain start --vault ~/my-brain-vault
 ```
 
-By default, Brain refuses to overwrite today’s existing daily note.
+Opens `http://localhost:3000`. Chat with your vault. Click the **home icon** next to the title to browse all your notes.
 
-## Status
+---
+
+## All commands
 
 ```bash
-brain status --vault /absolute/path/to/vault
+brain seed    --vault PATH  [--from-obsidian PATH] [--from-notion] [--from-gmail] [--from-calendar] [--dry-run]
+brain init    --vault PATH  [--agent claude-code|codex]
+brain start   --vault PATH  [--agent claude-code|codex] [--port N] [--no-open]
+brain daily   --vault PATH  [--force]
+brain status  --vault PATH
 ```
 
-This reports:
-- vault path
-- configured agent
-- backend binary path and version
-- folder mapping
-- integration readiness
-
-## Compatibility
-
-`main.py` now delegates to the new CLI:
+Or use the legacy entry point:
 
 ```bash
-python main.py daily --vault /absolute/path/to/vault
-python main.py chat --vault /absolute/path/to/vault
+python main.py daily --vault PATH
+python main.py chat  --vault PATH   # same as brain start
 ```
 
-`python main.py chat` is treated as `brain start`.
+---
 
-## Package Layout
+## Integrations
 
-```text
-brain/
-├── cli.py
-├── app_config.py
-├── env_config.py
-├── init_vault.py
-├── vault.py
-├── prompts.py
-├── agent_backends.py
-├── session.py
-├── summarizer.py
-├── daily.py
-├── integration_context.py
-├── server.py
-├── models.py
-└── web/index.html
-```
+| Integration | Used for | Required |
+|---|---|---|
+| Google Calendar | Daily note events, seed context | No |
+| Gmail | Daily note action items, seed context | No |
+| Notion | Open tasks, page content | No |
+| RSS feeds | Reading list in daily note | No |
+| Claude Code | Agent backend | Yes (or Codex) |
 
-## Tests
+---
+
+## Vault structure
+
+Brain uses five folders. Existing vault folders are mapped automatically — your `Daily/` becomes `daily`, your `References/` becomes `references`, etc.
+
+| Folder | Purpose |
+|---|---|
+| `core/` | Persistent notes: profile, projects, interests, people |
+| `references/` | Reference material, links, resources |
+| `daily/` | One note per day, generated from integrations |
+| `thoughts/` | Auto-written summaries of AI conversations |
+| `system/` | `brain.config.yaml` and `CLAUDE.md` agent instructions |
+
+---
+
+## Development
 
 ```bash
-.venv/bin/python -m pytest -q
+pip install -e '.[test]'
+pytest -q
 ```
 
-## Notes
+The integration clients (`gmail_client.py`, `calendar_client.py`, `notion_client.py`, `news_client.py`) live at the project root and are loaded dynamically at runtime. `config.py` is the central configuration module they all import from.
 
-- `setup.py` is now a packaging shim for editable installs.
-- `bootstrap.py` is the interactive integration setup script.
-- Optional integrations fail independently so the core app can still run with only a vault and a local agent CLI.
+---
+
+## Roadmap
+
+- [ ] Move integration clients into `brain/integrations/`
+- [ ] VPS deployment (Hetzner/Fly.io) with obsidian-headless sync
+- [ ] Mobile access via Tailscale
+- [ ] Background scheduled tasks

@@ -66,3 +66,42 @@ def get_action_items(max_results: int = 20) -> list[dict]:
     except Exception as e:
         print(f"  [gmail] skipped: {e}")
         return []
+
+
+def get_context_threads(days: int = 90, max_results: int = 60) -> dict:
+    """Return broader email context for vault seeding — top senders and recent thread subjects."""
+    if not config.GOOGLE_TOKEN_FILE.exists() and not config.GOOGLE_CREDENTIALS_FILE.exists():
+        return {"top_senders": [], "recent_subjects": []}
+    try:
+        creds = get_credentials()
+        service = build("gmail", "v1", credentials=creds)
+
+        after = int((datetime.now(timezone.utc) - timedelta(days=days)).timestamp())
+        result = service.users().messages().list(
+            userId="me", q=f"after:{after}", maxResults=max_results
+        ).execute()
+
+        sender_counts: dict[str, int] = {}
+        subjects: list[str] = []
+
+        for msg in result.get("messages", []):
+            detail = service.users().messages().get(
+                userId="me", id=msg["id"], format="metadata",
+                metadataHeaders=["Subject", "From"]
+            ).execute()
+            headers = {h["name"]: h["value"] for h in detail["payload"]["headers"]}
+            sender = headers.get("From", "")
+            subject = headers.get("Subject", "")
+            if sender:
+                sender_counts[sender] = sender_counts.get(sender, 0) + 1
+            if subject and subject not in subjects:
+                subjects.append(subject)
+
+        top_senders = sorted(sender_counts.items(), key=lambda x: x[1], reverse=True)[:15]
+        return {
+            "top_senders": [{"name": s, "count": c} for s, c in top_senders],
+            "recent_subjects": subjects[:30],
+        }
+    except Exception as e:
+        print(f"  [gmail] context skipped: {e}")
+        return {"top_senders": [], "recent_subjects": []}

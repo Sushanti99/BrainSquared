@@ -337,6 +337,118 @@
     code {
       font-family: "SFMono-Regular", "Menlo", monospace;
     }
+    /* ── vault view ──────────────────────────────────────────────── */
+    .vault-view {
+      display: none;
+      flex: 1;
+      min-height: 0;
+      grid-template-columns: minmax(220px, 28%) minmax(0, 1fr);
+    }
+    .vault-view.active {
+      display: grid;
+    }
+    .vault-tree {
+      border-right: 1px solid var(--line);
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .vault-tree-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      background: var(--panel-header-bg);
+      flex-shrink: 0;
+    }
+    .vault-tree-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 8px;
+    }
+    .vault-folder-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 10px 8px 4px;
+    }
+    .vault-file-btn {
+      display: block;
+      width: 100%;
+      text-align: left;
+      background: transparent;
+      border: none;
+      border-radius: 10px;
+      padding: 7px 10px;
+      font: inherit;
+      font-size: 14px;
+      color: var(--text);
+      cursor: pointer;
+      transition: background 120ms;
+    }
+    .vault-file-btn:hover { background: var(--soft); }
+    .vault-file-btn.active { background: var(--soft); color: var(--accent); font-weight: 600; }
+    .vault-content {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .vault-content-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel-header-bg);
+      flex-shrink: 0;
+    }
+    .vault-content-title {
+      font-size: 16px;
+      font-weight: 700;
+      flex: 1;
+    }
+    .vault-content-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 28px;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+    .vault-empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--muted);
+      font-size: 15px;
+    }
+    /* home icon button in header */
+    .home-btn {
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      border-radius: 10px;
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid transparent;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 120ms, color 120ms, border-color 120ms;
+      margin-left: 10px;
+      vertical-align: middle;
+    }
+    .home-btn:hover { background: var(--soft); color: var(--text); border-color: var(--line); }
+    .home-btn.active { background: var(--soft); color: var(--accent); border-color: var(--accent); }
     @media (max-width: 860px) {
       .layout {
         grid-template-columns: 1fr;
@@ -387,13 +499,21 @@
 <body>
   <div class="shell">
     <header class="app-header">
-      <div>
-        <div class="title">brain</div>
-        <div class="meta">
-          <span id="agent">agent: unknown</span>
-          <span> · </span>
-          <span id="session">session: disconnected</span>
+      <div style="display:flex;align-items:center;gap:4px;">
+        <div>
+          <div class="title">brain</div>
+          <div class="meta">
+            <span id="agent">agent: unknown</span>
+            <span> · </span>
+            <span id="session">session: disconnected</span>
+          </div>
         </div>
+        <button class="home-btn" id="homeBtn" type="button" title="Vault files">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 9.5L10 3l7 6.5V17a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+            <path d="M7.5 18v-5h5v5" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          </svg>
+        </button>
       </div>
       <div class="actions">
         <label class="theme-control" for="themeSelect">
@@ -438,6 +558,23 @@
         <div id="status">Connecting...</div>
       </section>
     </div>
+
+    <!-- Vault view (replaces layout when home is active) -->
+    <div class="vault-view" id="vaultView">
+      <aside class="vault-tree">
+        <div class="vault-tree-header">Vault</div>
+        <div class="vault-tree-list" id="vaultTreeList"></div>
+      </aside>
+      <section class="vault-content">
+        <div class="vault-content-header" id="vaultContentHeader" style="display:none;">
+          <div class="vault-content-title" id="vaultContentTitle"></div>
+        </div>
+        <div class="vault-content-body daily-note" id="vaultContentBody">
+          <div class="vault-empty">Select a file to read it.</div>
+        </div>
+      </section>
+    </div>
+
   </div>
 
   <script>
@@ -735,6 +872,84 @@
       setRunning(false);
       updateStatus("Ready.");
     });
+
+    // ── vault view ─────────────────────────────────────────────────────────────
+    const homeBtn = document.getElementById("homeBtn");
+    const layoutEl = document.querySelector(".layout");
+    const vaultView = document.getElementById("vaultView");
+    const vaultTreeList = document.getElementById("vaultTreeList");
+    const vaultContentBody = document.getElementById("vaultContentBody");
+    const vaultContentTitle = document.getElementById("vaultContentTitle");
+    const vaultContentHeader = document.getElementById("vaultContentHeader");
+    let vaultMode = false;
+    let activeFileBtn = null;
+
+    function enterVaultMode() {
+      vaultMode = true;
+      homeBtn.classList.add("active");
+      layoutEl.style.display = "none";
+      vaultView.classList.add("active");
+      loadVaultTree();
+    }
+
+    function exitVaultMode() {
+      vaultMode = false;
+      homeBtn.classList.remove("active");
+      layoutEl.style.display = "";
+      vaultView.classList.remove("active");
+    }
+
+    homeBtn.addEventListener("click", () => {
+      vaultMode ? exitVaultMode() : enterVaultMode();
+    });
+
+    async function loadVaultTree() {
+      vaultTreeList.innerHTML = `<div style="padding:12px;color:var(--muted);font-size:14px;">Loading...</div>`;
+      try {
+        const resp = await fetch("/api/notes");
+        const data = await resp.json();
+        if (!data.notes || !data.notes.length) {
+          vaultTreeList.innerHTML = `<div style="padding:12px;color:var(--muted);font-size:14px;">No notes found.</div>`;
+          return;
+        }
+        const groups = {};
+        for (const note of data.notes) {
+          (groups[note.folder] = groups[note.folder] || []).push(note);
+        }
+        vaultTreeList.innerHTML = "";
+        for (const [folder, notes] of Object.entries(groups)) {
+          const lbl = document.createElement("div");
+          lbl.className = "vault-folder-label";
+          lbl.textContent = folder;
+          vaultTreeList.appendChild(lbl);
+          for (const note of notes) {
+            const btn = document.createElement("button");
+            btn.className = "vault-file-btn";
+            btn.textContent = note.title;
+            btn.addEventListener("click", () => openVaultFile(note, btn));
+            vaultTreeList.appendChild(btn);
+          }
+        }
+      } catch {
+        vaultTreeList.innerHTML = `<div style="padding:12px;color:var(--muted);font-size:14px;">Failed to load vault.</div>`;
+      }
+    }
+
+    async function openVaultFile(note, btn) {
+      if (activeFileBtn) activeFileBtn.classList.remove("active");
+      activeFileBtn = btn;
+      btn.classList.add("active");
+      vaultContentTitle.textContent = note.title;
+      vaultContentHeader.style.display = "flex";
+      vaultContentBody.innerHTML = `<div class="vault-empty">Loading...</div>`;
+      try {
+        const resp = await fetch(`/api/notes/${note.path}`);
+        const data = await resp.json();
+        vaultContentBody.innerHTML = marked.parse(data.content || "*(empty)*");
+      } catch {
+        vaultContentBody.innerHTML = `<div class="vault-empty">Failed to load file.</div>`;
+      }
+    }
 
     applyTheme(getSavedTheme());
     loadDailyNote();

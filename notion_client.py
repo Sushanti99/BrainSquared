@@ -160,6 +160,34 @@ def _tasks_from_page(page_id: str, page_url: str) -> list[dict]:
     return tasks
 
 
+# ── page content extraction ───────────────────────────────────────────────────
+
+TEXT_BLOCK_TYPES = {
+    "paragraph", "heading_1", "heading_2", "heading_3",
+    "bulleted_list_item", "numbered_list_item", "quote", "callout",
+}
+
+
+def _page_text_content(page_id: str, max_chars: int = 800) -> str:
+    """Extract plain text from a page's top-level blocks."""
+    try:
+        data = _get(f"{NOTION_API}/blocks/{page_id}/children", params={"page_size": 50})
+        parts: list[str] = []
+        for block in data.get("results", []):
+            block_type = block.get("type", "")
+            if block_type not in TEXT_BLOCK_TYPES:
+                continue
+            rich_text = block.get(block_type, {}).get("rich_text", [])
+            text = "".join(r.get("plain_text", "") for r in rich_text).strip()
+            if text:
+                parts.append(text)
+            if sum(len(p) for p in parts) >= max_chars:
+                break
+        return "\n".join(parts)[:max_chars]
+    except Exception:
+        return ""
+
+
 # ── public API ────────────────────────────────────────────────────────────────
 
 def get_open_tasks() -> list[dict]:
@@ -192,3 +220,27 @@ def get_open_tasks() -> list[dict]:
         print(f"  [notion] skipped: {e}")
 
     return tasks
+
+
+def get_pages_content(max_pages: int = 15) -> list[dict]:
+    """Return page titles and text content for vault seeding."""
+    if not config.NOTION_API_KEY:
+        return []
+    try:
+        pages = _search_all("page")
+        result = []
+        for page in pages:
+            if page.get("parent", {}).get("type") == "database_id":
+                continue
+            title = _page_title(page)
+            if not title or title == "(untitled)":
+                continue
+            content = _page_text_content(page["id"])
+            result.append({"title": title, "url": page.get("url", ""), "content": content})
+            time.sleep(0.2)
+            if len(result) >= max_pages:
+                break
+        return result
+    except Exception as e:
+        print(f"  [notion] pages skipped: {e}")
+        return []
