@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Brain</title>
+  <title>idli</title>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
     :root {
@@ -501,7 +501,7 @@
     <header class="app-header">
       <div style="display:flex;align-items:center;gap:4px;">
         <div>
-          <div class="title">brain</div>
+          <div class="title">idli</div>
           <div class="meta">
             <span id="agent">agent: unknown</span>
             <span> · </span>
@@ -552,7 +552,7 @@
         <div id="messages"></div>
 
         <form id="composer">
-          <textarea id="input" placeholder="Ask Brain to work on the vault. Enter sends; Shift+Enter adds a newline."></textarea>
+          <textarea id="input" placeholder="Ask idli to work on the vault. Enter sends; Shift+Enter adds a newline."></textarea>
           <button id="sendBtn" type="submit">Send</button>
         </form>
         <div id="status">Connecting...</div>
@@ -594,7 +594,7 @@
     const prevDayBtn = document.getElementById("prevDayBtn");
     const nextDayBtn = document.getElementById("nextDayBtn");
     const themeSelect = document.getElementById("themeSelect");
-    const storageKey = "brain-theme";
+    const storageKey = "idli-theme";
     const systemThemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
     let socket = null;
@@ -741,7 +741,7 @@
       socket.addEventListener("open", () => updateStatus("Connected."));
       socket.addEventListener("close", () => {
         if (suppressReconnect) {
-          updateStatus("Another browser tab already owns the active Brain session.");
+          updateStatus("Another browser tab already owns the active idli session.");
           return;
         }
         updateStatus("Disconnected. Retrying...");

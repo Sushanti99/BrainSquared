@@ -1,8 +1,8 @@
-# Brain Agent V1 — Engineering Code Spec
+# idli V1 — Engineering Code Spec
 
 ## 1. Purpose
 
-This document is the implementation spec for Brain V1 in this repository.
+This document is the implementation spec for idli V1 in this repository.
 
 It replaces the earlier high-level plan with a tighter engineering contract:
 
@@ -15,15 +15,15 @@ It replaces the earlier high-level plan with a tighter engineering contract:
 - exact delivery phases and acceptance tests
 - resolved product decisions and locked engineering defaults
 
-This spec is authoritative for Brain V1 unless later amended.
+This spec is authoritative for idli V1 unless later amended.
 
 ## 2. Product Summary
 
-Brain is a local-first personal agent harness on top of an Obsidian vault.
+idli is a local-first personal agent harness on top of an Obsidian vault.
 
 The user should be able to:
 
-1. initialize or convert an Obsidian vault into Brain format
+1. initialize or convert an Obsidian vault into idli format
 2. start a local Python server
 3. interact through a minimal browser chat UI
 4. have Claude Code or Codex operate directly on the vault
@@ -49,7 +49,7 @@ These decisions are already confirmed:
 - session storage: summary only, written to `thoughts/`
 - deployment target: macOS first
 - preserve existing vault folder names through config rather than auto-migrating them
-- support mapping existing user folders into Brain config when they already match Brain concepts
+- support mapping existing user folders into idli config when they already match Brain concepts
 - refuse daily note overwrite by default if today’s note already exists
 - cancel active agent execution and summarize partial history when ending a session
 - reconnect browser refreshes to the same in-memory session
@@ -121,7 +121,7 @@ Primary mismatch:
 
 Conclusion:
 
-Brain V1 is a structured refactor and product pivot, not a full rewrite from zero.
+idli V1 is a structured refactor and product pivot, not a full rewrite from zero.
 
 ## 6. Architecture Overview
 
@@ -131,7 +131,7 @@ Brain V1 is a structured refactor and product pivot, not a full rewrite from zer
    - file system operations over an Obsidian vault
    - source of truth for notes, daily tasks, references, and session summaries
 
-2. Brain server layer
+2. idli server layer
    - Python web server
    - config loading
    - prompt construction
@@ -220,7 +220,7 @@ This avoids ambiguous imports during the migration.
 
 ### 8.1 Required vault folders
 
-Brain V1 expects these folders to exist:
+idli V1 expects these folders to exist:
 
 - `daily/`
 - `core/`
@@ -230,23 +230,23 @@ Brain V1 expects these folders to exist:
 
 ### 8.2 Conversion rules for existing vaults
 
-Brain V1 must support an existing vault without destructive modification.
+idli V1 must support an existing vault without destructive modification.
 
 Rules:
 
 1. Never rename existing folders automatically.
 2. Never move existing user notes automatically.
-3. Only create missing Brain folders/files.
+3. Only create missing idli folders/files.
 4. If a compatible `system/brain.config.yaml` already exists, load it as-is.
 5. If `system/CLAUDE.md` already exists, do not overwrite it without explicit flag.
 6. If an existing vault uses a different daily note folder, store that in config rather than forcing a migration immediately.
 7. If an existing vault already has folders that correspond to daily, core, references, or thoughts, support mapping them into config instead of duplicating structure blindly.
 
-This is important because the current code defaults to `Daily` while the Brain spec uses `daily`.
+This is important because the current code defaults to `Daily` while the idli spec uses `daily`.
 
 ### 8.3 Folder naming compatibility
 
-Brain V1 must support:
+idli V1 must support:
 
 - canonical folder names in config
 - a default canonical structure for new vaults
@@ -373,7 +373,7 @@ Keep `.env` for:
 - `NEWS_FEEDS`
 - any agent auth environment variables the CLIs already use
 
-Brain server behavior should not depend on `.env` except for optional integrations and CLI auth env passthrough.
+idli server behavior should not depend on `.env` except for optional integrations and CLI auth env passthrough.
 
 ## 10. CLI Spec
 
@@ -383,7 +383,7 @@ Use `argparse` for V1 to minimize dependencies and preserve current repo style.
 
 Purpose:
 
-- create a new Brain-compatible vault
+- create a new idli-compatible vault
 - or convert an existing vault non-destructively
 
 Flags:
@@ -397,7 +397,7 @@ Behavior:
 
 1. resolve target path
 2. if path does not exist, create it
-3. create missing Brain folders
+3. create missing idli folders
 4. detect and persist folder mappings for existing compatible user folders where applicable
 5. write default `CLAUDE.md` and `brain.config.yaml` if absent
 6. optionally create today’s daily note
@@ -412,7 +412,7 @@ Exit conditions:
 
 Purpose:
 
-- start the local Brain server
+- start the local idli server
 
 Flags:
 
@@ -948,7 +948,7 @@ Fix:
 
 ## 19. Safety and Guardrails Spec
 
-Brain V1 will not implement strong sandboxing. Therefore the prompt contract is part of the product surface.
+idli V1 will not implement strong sandboxing. Therefore the prompt contract is part of the product surface.
 
 Default `system/CLAUDE.md` must explicitly instruct the agent:
 
@@ -988,7 +988,7 @@ V1 plan:
   - rename to `bootstrap.py`
   - or fold into `brain init` / `brain setup`
 
-This does not block Brain V1.
+This does not block idli V1.
 
 ## 21. Dependency Plan
 
@@ -1550,7 +1550,7 @@ Reason:
 
 ## 24. Acceptance Criteria
 
-Brain V1 is complete only if all are true:
+idli V1 is complete only if all are true:
 
 - user can run `brain init`
 - user can run `brain start`
@@ -1575,7 +1575,7 @@ All material product behavior and packaging decisions for V1 are now resolved.
 Resolved:
 
 1. Preserve existing folder names such as `Daily/` in config by default.
-2. Support mapping existing equivalent folders into config; create canonical Brain folders only when no mapping exists.
+2. Support mapping existing equivalent folders into config; create canonical idli folders only when no mapping exists.
 
 ### 25.2 Daily note overwrite semantics
 

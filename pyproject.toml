@@ -3,7 +3,7 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "localbrain"
+name = "idli"
 version = "1.0.0"
 description = "Your second brain, on your laptop. Local-first personal AI agent for your Obsidian vault."
 readme = "README.md"

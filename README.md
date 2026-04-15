@@ -1,15 +1,15 @@
-# LocalBrain
+# idli
 
 Your second brain, on your laptop. No cloud. No subscriptions. Just your data and an AI that knows it.
 
-You connect your existing tools — Obsidian, Gmail, Google Calendar, Notion — and LocalBrain seeds a new vault from your real data. Then you chat with it through a minimal browser UI. The agent reads and writes your vault directly. Everything stays on your machine.
+You connect your existing tools — Obsidian, Gmail, Google Calendar, Notion — and idli seeds a new vault from your real data. Then you chat with it through a minimal browser UI. The agent reads and writes your vault directly. Everything stays on your machine.
 
 ---
 
 ## How it works
 
 ```
-Browser UI  ──►  LocalBrain Server  ──►  Claude Code / Codex CLI
+Browser UI  ──►  idli Server  ──►  Claude Code / Codex CLI
                                                 │
                                          Obsidian Vault (markdown files)
                                                 │
@@ -28,8 +28,8 @@ Browser UI  ──►  LocalBrain Server  ──►  Claude Code / Codex CLI
 ### 1. Install
 
 ```bash
-git clone https://github.com/your-username/localbrain
-cd localbrain
+git clone https://github.com/Sushanti/idli
+cd idli
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e '.[test]'
@@ -43,7 +43,7 @@ Requires [Claude Code](https://claude.ai/code) (or Codex) installed and authenti
 python bootstrap.py
 ```
 
-Walks you through Google OAuth (Gmail + Calendar), Notion API key, and RSS feeds. Writes credentials to `.env`. All integrations are optional — LocalBrain works with just a vault.
+Walks you through Google OAuth (Gmail + Calendar), Notion API key, and RSS feeds. Writes credentials to `.env`. All integrations are optional — idli works with just a vault.
 
 ### 3. Seed a new vault
 
@@ -55,7 +55,7 @@ brain seed --vault ~/my-vault \
                 --from-calendar
 ```
 
-LocalBrain collects your existing data, runs it through Claude, and populates:
+idli collects your existing data, runs it through Claude, and populates:
 
 ```
 my-vault/
@@ -111,7 +111,7 @@ python main.py chat  --vault PATH   # same as brain start
 
 ## Vault structure
 
-LocalBrain uses five folders. Existing vault folders are mapped automatically — your `Daily/` becomes `daily`, your `References/` becomes `references`, etc.
+idli uses five folders. Existing vault folders are mapped automatically — your `Daily/` becomes `daily`, your `References/` becomes `references`, etc.
 
 | Folder | Purpose |
 |---|---|

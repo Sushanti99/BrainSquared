@@ -1,4 +1,4 @@
-# Brain — Personal Knowledge Agent
+# idli — Personal Knowledge Agent
 
 > A personal knowledge management system where an Obsidian vault is the database, an agentic CLI (Claude Code / ChatGPT Codex / Gemini CLI) is the brain, and a lightweight web chat interface ties it all together.
 
@@ -6,7 +6,7 @@
 
 ## Overview
 
-Brain is a three-layer personal operating system:
+idli is a three-layer personal operating system:
 
 1. **Data Layer** — An Obsidian vault of markdown files. This is the single source of truth for everything: daily todos, life interests, references, and conversation history.
 2. **Agent Layer** — An agentic CLI tool (Claude Code, ChatGPT Codex, or Gemini CLI) that reads, writes, searches, and reasons over the vault. Configured at startup.
@@ -50,7 +50,7 @@ Brain is a three-layer personal operating system:
 │                  User's Machine                   │
 │                                                    │
 │  ┌─────────────┐     ┌──────────────────────────┐│
-│  │  Browser     │────▶│  Brain Server (Node.js)   ││
+│  │  Browser     │────▶│  idli Server (Node.js)   ││
 │  │  localhost:  │◀────│  - Express (HTTP)          ││
 │  │  3000        │ WS  │  - WebSocket (streaming)   ││
 │  │              │     │  - Agent spawner            ││
@@ -205,7 +205,7 @@ duration: ~15 min
 #### `system/`
 
 - **`CLAUDE.md`** — The system prompt / personality file for the agent. This is read by Claude Code automatically when it `cd`s into the vault. For Codex and Gemini, the server injects this as a preamble.
-- **`brain.config.yaml`** — Configuration for the Brain server.
+- **`brain.config.yaml`** — Configuration for the idli server.
 
 ---
 
@@ -214,7 +214,7 @@ duration: ~15 min
 ### `brain.config.yaml`
 
 ```yaml
-# Brain Configuration
+# idli Configuration
 # Located at: ~/vault/system/brain.config.yaml
 
 # Agent backend selection
@@ -395,7 +395,7 @@ Format as markdown with frontmatter. Keep it concise — this is a memory log, n
 
 ```
 ┌─────────────────────────────────────────┐
-│ 🧠 Brain  |  claude-code  |  session-1  │  ← header bar
+│ 🫓 idli   |  claude-code  |  session-1  │  ← header bar
 │                              [New] [End] │
 ├─────────────────────────────────────────┤
 │                                          │
@@ -422,9 +422,9 @@ This file lives at `~/vault/system/CLAUDE.md` and defines the agent's personalit
 ### Contents to Include
 
 ```markdown
-# Brain — System Prompt
+# idli — System Prompt
 
-You are Brain, a personal knowledge agent. You operate on an Obsidian vault
+You are idli, a personal knowledge agent. You operate on an Obsidian vault
 that contains the user's daily notes, core life interests, references, and
 thought logs.
 
@@ -489,13 +489,13 @@ thought logs.
 ### Commands
 
 ```bash
-# Initialize a new vault with the Brain structure
+# Initialize a new vault with the idli structure
 brain init [--path ~/vault]
 # Creates: daily/, core/, references/, thoughts/, system/
 # Creates: system/CLAUDE.md (default system prompt)
 # Creates: system/brain.config.yaml (default config)
 
-# Start the Brain server
+# Start the idli server
 brain start [--port 3000] [--agent claude-code]
 # Reads config from system/brain.config.yaml
 # Starts Express + WebSocket server
@@ -522,7 +522,7 @@ brain status
 3. Start Express server on configured port.
 4. Serve `web/index.html` at `/`.
 5. Handle WebSocket connections at `/ws`.
-6. Log: "Brain is running at http://localhost:3000 (agent: claude-code)".
+6. Log: "idli is running at http://localhost:3000 (agent: claude-code)".
 7. Open browser automatically (use `open` on macOS, `xdg-open` on Linux).
 
 ---
@@ -545,7 +545,7 @@ brain status
 │                  VPS (Hetzner/Fly)                 │
 │                                                    │
 │  ┌──────────────┐  ┌──────────────────────────┐  │
-│  │ ob sync       │  │  Brain Server (Node.js)   │  │
+│  │ ob sync       │  │  idli Server (Node.js)   │  │
 │  │ --continuous   │  │  + password auth          │  │
 │  └──────┬───────┘  └──────────┬───────────────┘  │
 │         │                      │                    │
@@ -592,8 +592,8 @@ The script should:
 5. Prompt for vault name → run `ob sync-setup`.
 6. Prompt for `CLAUDE_CODE_OAUTH_TOKEN` → write to `.env`.
 7. Prompt for a web UI password → write to `.env`.
-8. Clone the Brain repo, `npm install`.
-9. Start `ob sync --continuous` and the Brain server via PM2.
+8. Clone the idli repo, `npm install`.
+9. Start `ob sync --continuous` and the idli server via PM2.
 10. Set up Cloudflare Tunnel (interactive) or print Tailscale instructions.
 11. Print the access URL.
 
@@ -751,10 +751,10 @@ brain/
 
 ## Non-Goals (Explicitly Out of Scope)
 
-- **No Obsidian plugin.** Brain is a standalone tool. Obsidian is just the vault.
+- **No Obsidian plugin.** idli is a standalone tool. Obsidian is just the vault.
 - **No RAG / vector search.** The agent uses grep/glob to search the vault. Good enough for personal scale (~100 files).
 - **No multi-model routing within a session.** You pick one agent at startup. Switching requires restart.
-- **No calendar/email integration.** Brain manages knowledge, not scheduling.
+- **No calendar/email integration.** idli manages knowledge, not scheduling.
 - **No real-time collaboration.** Single user only.
 - **No mobile app.** The web UI accessed from a mobile browser is the mobile experience.
 
