@@ -26,7 +26,7 @@ idli is a three-layer personal operating system:
 
 ### What V1 Does
 
-- User runs `brain start` from the terminal.
+- User runs `idli start` from the terminal.
 - A web chat UI opens at `http://localhost:3000`.
 - User types messages. The server spawns the configured agent CLI (`claude -p`, `codex`, or `gemini`) pointed at the Obsidian vault.
 - The agent can read any file in the vault, write/edit files, search across the vault, and run shell commands scoped to the vault directory.
@@ -108,7 +108,7 @@ idli is a three-layer personal operating system:
 │   └── ...
 ├── system/
 │   ├── CLAUDE.md              # System prompt for the agent
-│   └── brain.config.yaml      # Brain configuration
+│   └── idli.config.yaml      # Brain configuration
 └── .obsidian/                  # Obsidian settings (ignored by agent)
 ```
 
@@ -205,17 +205,17 @@ duration: ~15 min
 #### `system/`
 
 - **`CLAUDE.md`** — The system prompt / personality file for the agent. This is read by Claude Code automatically when it `cd`s into the vault. For Codex and Gemini, the server injects this as a preamble.
-- **`brain.config.yaml`** — Configuration for the idli server.
+- **`idli.config.yaml`** — Configuration for the idli server.
 
 ---
 
 ## Configuration
 
-### `brain.config.yaml`
+### `idli.config.yaml`
 
 ```yaml
 # idli Configuration
-# Located at: ~/vault/system/brain.config.yaml
+# Located at: ~/vault/system/idli.config.yaml
 
 # Agent backend selection
 agent: claude-code  # Options: claude-code | codex | gemini-cli
@@ -273,14 +273,14 @@ brain/
 │   ├── index.js              # Entry point — Express + WebSocket server
 │   ├── agent.js              # Agent spawner — handles claude/codex/gemini
 │   ├── session.js            # Session manager — tracks conversation history
-│   ├── config.js             # Reads brain.config.yaml
+│   ├── config.js             # Reads idli.config.yaml
 │   ├── prompt-builder.js     # Builds context-aware prompts for the agent
 │   └── summarizer.js         # Generates session summaries for thoughts/
 ├── web/
 │   ├── index.html            # Single-file chat UI (HTML + CSS + JS inline)
 │   └── favicon.ico           # Optional
 ├── bin/
-│   └── brain.js              # CLI entry — `brain start`, `brain init`
+│   └── brain.js              # CLI entry — `idli start`, `idli init`
 ├── package.json
 ├── README.md
 └── LICENSE
@@ -291,7 +291,7 @@ brain/
 #### `agent.js` — Agent Spawner
 
 Responsibilities:
-- Reads `brain.config.yaml` to determine which agent to use.
+- Reads `idli.config.yaml` to determine which agent to use.
 - Spawns the agent CLI as a child process, pointed at the vault directory.
 - For Claude Code: runs `claude -p "<prompt>" --allowedTools "Read,Edit,Bash,Glob,Grep" --output-format stream-json` in the vault directory.
 - For Codex: runs `codex --quiet "<prompt>"` in the vault directory.
@@ -490,34 +490,34 @@ thought logs.
 
 ```bash
 # Initialize a new vault with the idli structure
-brain init [--path ~/vault]
+idli init [--path ~/vault]
 # Creates: daily/, core/, references/, thoughts/, system/
 # Creates: system/CLAUDE.md (default system prompt)
-# Creates: system/brain.config.yaml (default config)
+# Creates: system/idli.config.yaml (default config)
 
 # Start the idli server
-brain start [--port 3000] [--agent claude-code]
-# Reads config from system/brain.config.yaml
+idli start [--port 3000] [--agent claude-code]
+# Reads config from system/idli.config.yaml
 # Starts Express + WebSocket server
 # Opens browser to http://localhost:3000
 
 # Check configuration and agent availability
-brain status
+idli status
 # Shows: vault path, configured agent, agent CLI version, port
 ```
 
-### `brain init` Flow
+### `idli init` Flow
 
 1. Ask for vault path (default: `~/vault`). If the directory exists and has markdown files, confirm before restructuring.
 2. Create folder structure: `daily/`, `core/`, `references/`, `thoughts/`, `system/`.
 3. Write default `system/CLAUDE.md`.
-4. Write default `system/brain.config.yaml`.
+4. Write default `system/idli.config.yaml`.
 5. Create today's daily note: `daily/YYYY-MM-DD.md` with a starter template.
-6. Print instructions: "Run `brain start` to begin."
+6. Print instructions: "Run `idli start` to begin."
 
-### `brain start` Flow
+### `idli start` Flow
 
-1. Read `system/brain.config.yaml`.
+1. Read `system/idli.config.yaml`.
 2. Validate the configured agent CLI is installed and accessible (run `claude --version`, `codex --version`, or `gemini --version`).
 3. Start Express server on configured port.
 4. Serve `web/index.html` at `/`.
@@ -687,14 +687,14 @@ brain/
 ├── docs/                     # Deployment guides
 └── templates/
     ├── CLAUDE.md              # Default system prompt
-    └── brain.config.yaml      # Default config
+    └── idli.config.yaml      # Default config
 ```
 
 ### README Structure
 
 1. **Hero:** One-line description + screenshot/GIF of the chat UI.
 2. **What is this:** 3-sentence explanation.
-3. **Quickstart:** `npx brain init && npx brain start` — up and running in 60 seconds.
+3. **Quickstart:** `npx idli init && npx idli start` — up and running in 60 seconds.
 4. **Prerequisites:** Node.js 22+, Obsidian (optional but recommended), at least one agent CLI installed.
 5. **Configuration:** How to pick your agent, customize the system prompt.
 6. **Deploy to VPS:** Link to deployment guides.
@@ -704,7 +704,7 @@ brain/
 ### npm Package
 
 - Published as `@brain/cli` or `brain-agent` (check availability).
-- `npx brain init` and `npx brain start` should just work.
+- `npx idli init` and `npx idli start` should just work.
 - Zero native dependencies. Pure Node.js.
 
 ---
@@ -714,7 +714,7 @@ brain/
 ### Phase 1: Foundation (Day 1)
 
 - [ ] Scaffold project structure.
-- [ ] Implement `brain init` — creates vault structure + default files.
+- [ ] Implement `idli init` — creates vault structure + default files.
 - [ ] Implement config reader (`config.js`).
 - [ ] Implement agent spawner (`agent.js`) — Claude Code support first.
 - [ ] Basic Express server with WebSocket.
@@ -728,7 +728,7 @@ brain/
 - [ ] Implement summarizer (`summarizer.js`) — auto-save session summaries.
 - [ ] Add Codex and Gemini CLI agent backends.
 - [ ] Polish chat UI — markdown rendering, streaming, dark theme.
-- [ ] Implement `brain status` command.
+- [ ] Implement `idli status` command.
 
 ### Phase 3: Polish & Package (Day 3)
 

@@ -48,7 +48,7 @@ Walks you through Google OAuth (Gmail + Calendar), Notion API key, and RSS feeds
 ### 3. Seed a new vault
 
 ```bash
-brain seed --vault ~/my-vault \
+idli seed --vault ~/my-vault \
                 --from-obsidian ~/path/to/existing-vault \
                 --from-notion \
                 --from-gmail \
@@ -71,7 +71,7 @@ Use `--dry-run` to inspect collected data before the agent writes anything.
 ### 4. Start
 
 ```bash
-brain start --vault ~/my-vault
+idli start --vault ~/my-vault
 ```
 
 Opens `http://localhost:3000`. Chat with your vault. Click the **home icon** next to the title to browse all your notes.
@@ -81,18 +81,18 @@ Opens `http://localhost:3000`. Chat with your vault. Click the **home icon** nex
 ## All commands
 
 ```bash
-brain seed    --vault PATH  [--from-obsidian PATH] [--from-notion] [--from-gmail] [--from-calendar] [--dry-run]
-brain init    --vault PATH  [--agent claude-code|codex]
-brain start   --vault PATH  [--agent claude-code|codex] [--port N] [--no-open]
-brain daily   --vault PATH  [--force]
-brain status  --vault PATH
+idli seed    --vault PATH  [--from-obsidian PATH] [--from-notion] [--from-gmail] [--from-calendar] [--dry-run]
+idli init    --vault PATH  [--agent claude-code|codex]
+idli start   --vault PATH  [--agent claude-code|codex] [--port N] [--no-open]
+idli daily   --vault PATH  [--force]
+idli status  --vault PATH
 ```
 
 Or use the legacy entry point:
 
 ```bash
 python main.py daily --vault PATH
-python main.py chat  --vault PATH   # same as brain start
+python main.py chat  --vault PATH   # same as idli start
 ```
 
 ---

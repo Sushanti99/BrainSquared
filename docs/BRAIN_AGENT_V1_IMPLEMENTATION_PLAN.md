@@ -37,7 +37,7 @@ The user should not need to open Obsidian files manually for normal operation.
 These decisions are already confirmed:
 
 - implementation language: Python only
-- product name: `brain`
+- product name: `idli`
 - supported V1 agents: Claude Code and Codex
 - V1 session model: single active session, single browser tab
 - storage model: Obsidian vault is the primary database
@@ -57,7 +57,7 @@ These decisions are already confirmed:
 - inject the canonical prompt content into Codex requests rather than inventing a second prompt-file convention in V1
 - use Gmail/Calendar/Notion/news only for daily note generation by default, not normal chat prompts
 - add `pyproject.toml` in V1
-- add an installable `brain` console script in V1
+- add an installable `idli` console script in V1
 - keep `main.py` as a temporary compatibility wrapper during migration
 
 ## 4. V1 Goals
@@ -75,7 +75,7 @@ These decisions are already confirmed:
 - summarized session persistence
 - vault initialization and conversion
 - daily note generation from existing integrations
-- local CLI entrypoint `brain`
+- local CLI entrypoint `idli`
 
 ### 4.2 Explicitly out of scope
 
@@ -188,7 +188,7 @@ brain/
 │   └── index.html
 └── templates/
     ├── CLAUDE.md
-    ├── brain.config.yaml
+    ├── idli.config.yaml
     └── daily_note.md
 
 tests/
@@ -211,7 +211,7 @@ The current repo already has a top-level [config.py](/Users/sanjit/Desktop/san/t
 
 Use:
 
-- `brain/app_config.py` for `brain.config.yaml`
+- `brain/app_config.py` for `idli.config.yaml`
 - `brain/env_config.py` for `.env` integration credentials
 
 This avoids ambiguous imports during the migration.
@@ -237,7 +237,7 @@ Rules:
 1. Never rename existing folders automatically.
 2. Never move existing user notes automatically.
 3. Only create missing idli folders/files.
-4. If a compatible `system/brain.config.yaml` already exists, load it as-is.
+4. If a compatible `system/idli.config.yaml` already exists, load it as-is.
 5. If `system/CLAUDE.md` already exists, do not overwrite it without explicit flag.
 6. If an existing vault uses a different daily note folder, store that in config rather than forcing a migration immediately.
 7. If an existing vault already has folders that correspond to daily, core, references, or thoughts, support mapping them into config instead of duplicating structure blindly.
@@ -295,7 +295,7 @@ Raw transcript is not stored in V1.
 
 ## 9. Configuration Spec
 
-### 9.1 `system/brain.config.yaml`
+### 9.1 `system/idli.config.yaml`
 
 Canonical V1 schema:
 
@@ -352,7 +352,7 @@ integrations:
 Load order:
 
 1. explicit `--config` path if supplied
-2. `<vault>/system/brain.config.yaml`
+2. `<vault>/system/idli.config.yaml`
 3. fail with a clear error
 
 Validation rules:
@@ -379,7 +379,7 @@ idli server behavior should not depend on `.env` except for optional integration
 
 Use `argparse` for V1 to minimize dependencies and preserve current repo style.
 
-### 10.1 `brain init`
+### 10.1 `idli init`
 
 Purpose:
 
@@ -399,7 +399,7 @@ Behavior:
 2. if path does not exist, create it
 3. create missing idli folders
 4. detect and persist folder mappings for existing compatible user folders where applicable
-5. write default `CLAUDE.md` and `brain.config.yaml` if absent
+5. write default `CLAUDE.md` and `idli.config.yaml` if absent
 6. optionally create today’s daily note
 7. print exactly what was created vs reused
 
@@ -408,7 +408,7 @@ Exit conditions:
 - success: exit 0
 - invalid path or permissions issue: exit non-zero with precise message
 
-### 10.2 `brain start`
+### 10.2 `idli start`
 
 Purpose:
 
@@ -430,7 +430,7 @@ Behavior:
 4. start FastAPI/uvicorn
 5. optionally open browser on macOS
 
-### 10.3 `brain status`
+### 10.3 `idli status`
 
 Purpose:
 
@@ -448,7 +448,7 @@ Output should include:
   - Notion configured or missing
   - news feeds configured or default-only
 
-### 10.4 `brain daily`
+### 10.4 `idli daily`
 
 Purpose:
 
@@ -986,7 +986,7 @@ V1 plan:
 - keep it temporarily
 - later either:
   - rename to `bootstrap.py`
-  - or fold into `brain init` / `brain setup`
+  - or fold into `idli init` / `idli setup`
 
 This does not block idli V1.
 
@@ -1021,7 +1021,7 @@ Required files:
 Required packaging behavior:
 
 - installable in editable mode for local development
-- console entrypoint named `brain`
+- console entrypoint named `idli`
 - temporary backward compatibility for `python main.py ...`
 
 Recommended `pyproject.toml` responsibilities:
@@ -1051,9 +1051,9 @@ Why this is locked for V1:
 
 ### 22.2 Integration tests
 
-- `brain init` against empty temp vault
-- `brain init` against existing temp vault
-- `brain daily` writes expected path
+- `idli init` against empty temp vault
+- `idli init` against existing temp vault
+- `idli daily` writes expected path
 - `GET /api/status` returns readiness payload
 - websocket single-session enforcement
 
@@ -1086,11 +1086,11 @@ This is important. Backend parsing should not remain informal.
 - implement config loading
 - implement vault init/conversion
 - add templates
-- implement `brain init`
+- implement `idli init`
 
 Exit criteria:
 
-- `brain init --vault <path>` works on empty and existing vaults
+- `idli init --vault <path>` works on empty and existing vaults
 
 ### Phase 1 Detailed File Plan
 
@@ -1106,7 +1106,7 @@ Files to create:
 - `brain/init_vault.py`
 - `brain/vault.py`
 - `brain/templates/CLAUDE.md`
-- `brain/templates/brain.config.yaml`
+- `brain/templates/idli.config.yaml`
 - `brain/templates/daily_note.md`
 
 Primary functions and classes:
@@ -1140,7 +1140,7 @@ Implementation notes:
 - add FastAPI app
 - add static HTML UI
 - add websocket session handling
-- add `brain start`
+- add `idli start`
 - add browser auto-open
 
 Exit criteria:
@@ -1288,7 +1288,7 @@ Implementation notes:
 
 - implement Codex adapter
 - verify JSONL parser
-- add `brain status` backend diagnostics
+- add `idli status` backend diagnostics
 
 Exit criteria:
 
@@ -1330,7 +1330,7 @@ Files to update:
 Primary tasks:
 
 - wire `main.py` to the new package where useful
-- document both `brain ...` and temporary legacy entrypoints
+- document both `idli ...` and temporary legacy entrypoints
 - verify installation flow
 - verify editable install flow
 
@@ -1507,7 +1507,7 @@ Reason:
 ### Foundation done means
 
 - editable install works
-- `brain --help` works
+- `idli --help` works
 - config file can be written and read
 - new and existing vault paths are handled
 
@@ -1552,8 +1552,8 @@ Reason:
 
 idli V1 is complete only if all are true:
 
-- user can run `brain init`
-- user can run `brain start`
+- user can run `idli init`
+- user can run `idli start`
 - browser UI loads at localhost
 - exactly one active websocket session is allowed
 - Claude Code backend works end-to-end
@@ -1561,7 +1561,7 @@ idli V1 is complete only if all are true:
 - responses stream incrementally
 - prompts include daily note and core-note awareness
 - session end writes a markdown summary
-- `brain daily` works
+- `idli daily` works
 - daily note can be triggered from the UI
 - missing optional integrations fail gracefully
 - existing vault conversion is non-destructive
@@ -1603,7 +1603,7 @@ Resolved:
 
 Resolved by engineering default:
 
-10. `brain.config.yaml` should allow Claude tool customization from V1, with `Read/Edit/Bash/Glob/Grep` as defaults.
+10. `idli.config.yaml` should allow Claude tool customization from V1, with `Read/Edit/Bash/Glob/Grep` as defaults.
 11. Codex should use its default local CLI behavior in V1 unless a concrete issue forces an explicit mode later.
 
 ### 25.6 Integrations in prompt context
@@ -1617,14 +1617,14 @@ Resolved:
 
 Resolved by engineering default:
 
-14. `brain status` should show versions and relevant file paths; the UI should stay lighter and focus on readiness.
+14. `idli status` should show versions and relevant file paths; the UI should stay lighter and focus on readiness.
 15. The UI should expose simple connected/not-connected integration indicators in V1.
 
 ### 25.8 Packaging and compatibility
 
 Resolved:
 
-16. Add `pyproject.toml` and an installable `brain` console script in V1, while keeping `main.py` as a temporary compatibility wrapper during migration.
+16. Add `pyproject.toml` and an installable `idli` console script in V1, while keeping `main.py` as a temporary compatibility wrapper during migration.
 
 ## 26. Recommended Answers
 
