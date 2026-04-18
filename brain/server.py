@@ -13,7 +13,7 @@ from threading import Timer
 
 import uvicorn
 from fastapi import FastAPI, Query, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 
 from brain import integrations_api
 from brain.agent_backends import get_backend
@@ -209,6 +209,17 @@ def create_app(runtime: AppRuntime) -> FastAPI:
             pass
         finally:
             await runtime.session_manager.detach_websocket(websocket)
+
+    @app.post("/api/seed")
+    async def post_seed():
+        from brain.seeder import SeedSources, run_seed_streaming
+        vault_path = runtime.app_cfg.vault.path
+
+        async def _stream():
+            async for line in run_seed_streaming(vault_path, agent=runtime.app_cfg.agent, env_cfg=runtime.env_cfg):
+                yield line + "\n"
+
+        return StreamingResponse(_stream(), media_type="text/plain")
 
     integrations_api.register(app, runtime)
     return app

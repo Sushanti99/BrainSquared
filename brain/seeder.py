@@ -319,6 +319,155 @@ def run_seed(
     return result
 
 
+# ── streaming seed (for UI) ────────────────────────────────────────────────────
+
+async def run_seed_streaming(vault_path: Path, *, agent: str, env_cfg):
+    """Auto-detect connected integrations and seed the vault, yielding progress lines."""
+    import os
+
+    vault_path = vault_path.expanduser().resolve()
+    yield f"Initializing vault at {vault_path} ..."
+
+    initialize_vault(vault_path, agent=agent)
+    vault_paths = resolve_vault_paths(default_app_config(vault_path, agent))
+
+    cfg = _load_legacy("config")
+    cfg.VAULT_PATH = vault_path
+    cfg.GOOGLE_CREDENTIALS_FILE = env_cfg.google_credentials_file
+    cfg.GOOGLE_TOKEN_FILE = env_cfg.google_token_file
+    cfg.NOTION_API_KEY = env_cfg.notion_api_key
+
+    sections: list[str] = []
+    sources_used: list[str] = []
+
+    has_google = env_cfg.google_token_file.exists()
+    has_notion = bool(env_cfg.notion_api_key)
+    has_github = bool(os.getenv("GITHUB_TOKEN"))
+    has_slack  = bool(os.getenv("SLACK_BOT_TOKEN"))
+    has_linear = bool(os.getenv("LINEAR_API_KEY"))
+
+    if has_google:
+        yield "  Collecting Gmail (last 90 days) ..."
+        text = collect_gmail_context(env_cfg)
+        if text:
+            sections.append(text)
+            sources_used.append("Gmail")
+
+        yield "  Collecting Google Calendar ..."
+        text = collect_calendar_context(env_cfg)
+        if text:
+            sections.append(text)
+            sources_used.append("Calendar")
+
+    if has_notion:
+        yield "  Collecting Notion ..."
+        text = collect_notion_context(env_cfg)
+        if text:
+            sections.append(text)
+            sources_used.append("Notion")
+
+    if has_github:
+        yield "  Collecting GitHub (open PRs and issues) ..."
+        text = _collect_github_context(os.getenv("GITHUB_TOKEN", ""))
+        if text:
+            sections.append(text)
+            sources_used.append("GitHub")
+
+    if has_slack:
+        yield "  Collecting Slack (recent threads) ..."
+        text = _collect_slack_context(os.getenv("SLACK_BOT_TOKEN", ""))
+        if text:
+            sections.append(text)
+            sources_used.append("Slack")
+
+    if has_linear:
+        yield "  Collecting Linear (open issues) ..."
+        text = _collect_linear_context(os.getenv("LINEAR_API_KEY", ""))
+        if text:
+            sections.append(text)
+            sources_used.append("Linear")
+
+    if not sections:
+        yield "\nNo integrations connected. Go to Integrations tab and connect your tools first."
+        return
+
+    yield f"\nSources: {', '.join(sources_used)}"
+    seed_path = write_seed_input(vault_paths, sections)
+    yield f"Seed input written → {seed_path.relative_to(vault_path)}"
+    yield "\nSynthesizing vault with Claude CLI ..."
+
+    try:
+        await _synthesize(vault_paths)
+        notes = [str(p.relative_to(vault_path)) for p in vault_paths.root.rglob("*.md") if "system" not in p.parts]
+        yield f"\nDone! Notes created: {', '.join(notes) or 'none'}"
+        yield "\nYour vault is ready. Switch to Tasks to start chatting."
+    except Exception as exc:
+        yield f"\nSynthesis failed: {exc}"
+
+
+def _collect_github_context(token: str) -> str:
+    if not token:
+        return ""
+    try:
+        import httpx
+        headers = {"Authorization": f"token {token}", "Accept": "application/vnd.github+json"}
+        prs = httpx.get("https://api.github.com/search/issues?q=is:pr+is:open+author:@me&per_page=20", headers=headers, timeout=10).json()
+        issues = httpx.get("https://api.github.com/search/issues?q=is:issue+is:open+assignee:@me&per_page=20", headers=headers, timeout=10).json()
+        parts = []
+        if prs.get("items"):
+            lines = "\n".join(f"- [{i['title']}]({i['html_url']}) ({i['repository_url'].split('/')[-1]})" for i in prs["items"][:15])
+            parts.append(f"### Open PRs\n{lines}")
+        if issues.get("items"):
+            lines = "\n".join(f"- [{i['title']}]({i['html_url']}) ({i['repository_url'].split('/')[-1]})" for i in issues["items"][:15])
+            parts.append(f"### Assigned Issues\n{lines}")
+        return ("## GitHub\n\n" + "\n\n".join(parts)) if parts else ""
+    except Exception as e:
+        print(f"  [github] skipped: {e}")
+        return ""
+
+
+def _collect_slack_context(token: str) -> str:
+    if not token:
+        return ""
+    try:
+        import httpx
+        headers = {"Authorization": f"Bearer {token}"}
+        channels = httpx.get("https://slack.com/api/conversations.list?limit=20&exclude_archived=true", headers=headers, timeout=10).json()
+        parts = []
+        for ch in (channels.get("channels") or [])[:8]:
+            hist = httpx.get(f"https://slack.com/api/conversations.history?channel={ch['id']}&limit=5", headers=headers, timeout=10).json()
+            msgs = [m.get("text", "") for m in (hist.get("messages") or []) if m.get("text")]
+            if msgs:
+                lines = "\n".join(f"- {m[:120]}" for m in msgs[:3])
+                parts.append(f"### #{ch['name']}\n{lines}")
+        return ("## Slack (recent messages)\n\n" + "\n\n".join(parts)) if parts else ""
+    except Exception as e:
+        print(f"  [slack] skipped: {e}")
+        return ""
+
+
+def _collect_linear_context(api_key: str) -> str:
+    if not api_key:
+        return ""
+    try:
+        import httpx
+        query = '{"query":"{ issues(filter:{state:{type:{eq:\\"started\\"}}},first:30){nodes{title url priority assignee{name}team{name}}}}"}'
+        resp = httpx.post(
+            "https://api.linear.app/graphql",
+            headers={"Authorization": api_key, "Content-Type": "application/json"},
+            content=query,
+            timeout=10,
+        ).json()
+        nodes = resp.get("data", {}).get("issues", {}).get("nodes", [])
+        if not nodes:
+            return ""
+        lines = "\n".join(f"- [{n['title']}]({n['url']}) [{n.get('team',{}).get('name','')}]" for n in nodes[:20])
+        return f"## Linear (in-progress issues)\n\n{lines}"
+    except Exception as e:
+        print(f"  [linear] skipped: {e}")
+        return ""
+
+
 # ── helpers ────────────────────────────────────────────────────────────────────
 
 def _load_legacy(module_name: str, env_cfg: EnvConfig | None = None):  # noqa: ARG001
