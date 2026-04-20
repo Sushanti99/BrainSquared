@@ -10,14 +10,32 @@ from dotenv import load_dotenv
 from brain.models import EnvConfig
 
 
+def _find_dotenv() -> Path | None:
+    """Search CWD and parents for a .env file."""
+    here = Path.cwd()
+    for directory in [here, *here.parents]:
+        candidate = directory / ".env"
+        if candidate.exists():
+            return candidate
+    return None
+
+
 def load_env_config(env_file: str | Path | None = None) -> EnvConfig:
     if env_file is None:
-        load_dotenv()
+        dotenv_path = _find_dotenv()
+        load_dotenv(dotenv_path)
     else:
-        load_dotenv(Path(env_file))
+        dotenv_path = Path(env_file)
+        load_dotenv(dotenv_path)
 
-    google_credentials = Path(os.getenv("GOOGLE_CREDENTIALS_FILE", "credentials.json")).expanduser()
-    google_token = Path(os.getenv("GOOGLE_TOKEN_FILE", "token.json")).expanduser()
+    base = dotenv_path.parent if dotenv_path else Path.cwd()
+
+    def _resolve(value: str) -> Path:
+        p = Path(value).expanduser()
+        return p if p.is_absolute() else (base / p).resolve()
+
+    google_credentials = _resolve(os.getenv("GOOGLE_CREDENTIALS_FILE", "credentials.json"))
+    google_token = _resolve(os.getenv("GOOGLE_TOKEN_FILE", "token.json"))
     notion_api_key = os.getenv("NOTION_API_KEY", "")
     news_feeds = [item.strip() for item in os.getenv("NEWS_FEEDS", "").split(",") if item.strip()]
 
