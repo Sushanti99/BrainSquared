@@ -6,47 +6,68 @@ import importlib
 import importlib.util
 import os
 import sys
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 from brain.models import AppConfig, DailyContext, EnvConfig
 from brain.vault import read_vault
 
 
-def build_daily_context(app_cfg: AppConfig, env_cfg: EnvConfig) -> DailyContext:
+def build_daily_context(
+    app_cfg: AppConfig,
+    env_cfg: EnvConfig,
+    enabled_integrations: set[str] | None = None,
+) -> DailyContext:
+    def want(key: str) -> bool:
+        return enabled_integrations is None or key in enabled_integrations
+
+    _ensure_project_root_on_path()
     legacy_config = _load_legacy_module("config")
     _configure_legacy_modules(legacy_config, app_cfg, env_cfg)
     bundle = DailyContext(today=date.today().isoformat())
 
-    try:
-        all_notes = read_vault(app_cfg.vault.path)
-        bundle.vault_notes = [note for note in all_notes if not note.frontmatter.get("generated")]
-    except Exception:
-        bundle.vault_notes = []
+    from brain.vault import resolve_vault_paths
+    vault_paths = resolve_vault_paths(app_cfg)
+    dismissed = _load_dismissed_from_yesterday(vault_paths.daily)
 
-    try:
-        calendar_client = _load_legacy_module("calendar_client")
-        bundle.calendar_events = calendar_client.get_todays_events()
-    except Exception:
-        bundle.calendar_events = []
+    if want("obsidian"):
+        try:
+            all_notes = read_vault(app_cfg.vault.path)
+            bundle.vault_notes = [note for note in all_notes if not note.frontmatter.get("generated")]
+        except Exception:
+            bundle.vault_notes = []
 
-    try:
-        gmail_client = _load_legacy_module("gmail_client")
-        bundle.email_items = gmail_client.get_action_items()
-    except Exception:
-        bundle.email_items = []
+    if want("calendar"):
+        try:
+            calendar_client = _load_legacy_module("calendar_client")
+            bundle.calendar_events = calendar_client.get_todays_events()
+        except Exception:
+            bundle.calendar_events = []
 
-    try:
-        notion_client = _load_legacy_module("notion_client")
-        bundle.notion_tasks = notion_client.get_open_tasks()
-    except Exception:
-        bundle.notion_tasks = []
+    if want("email"):
+        try:
+            gmail_client = _load_legacy_module("gmail_client")
+            items = gmail_client.get_action_items()
+            bundle.email_items = [e for e in items if not _is_dismissed(e.get("subject", ""), dismissed)]
+        except Exception:
+            bundle.email_items = []
 
-    if token := os.getenv("GITHUB_TOKEN"):
-        bundle.github_items = _fetch_github_items(token)
+    if want("notion"):
+        try:
+            notion_client = _load_legacy_module("notion_client")
+            items = notion_client.get_open_tasks()
+            bundle.notion_tasks = [t for t in items if not _is_dismissed(t.get("title", ""), dismissed)]
+        except Exception:
+            bundle.notion_tasks = []
 
-    if token := os.getenv("SLACK_BOT_TOKEN"):
-        bundle.slack_items = _fetch_slack_items(token)
+    if want("github"):
+        if token := os.getenv("GITHUB_TOKEN"):
+            items = _fetch_github_items(token)
+            bundle.github_items = [i for i in items if not _is_dismissed(i.get("title", ""), dismissed)]
+
+    if want("slack"):
+        if token := os.getenv("SLACK_BOT_TOKEN"):
+            bundle.slack_items = _fetch_slack_items(token)
 
     try:
         news_client = _load_legacy_module("news_client")
@@ -54,7 +75,50 @@ def build_daily_context(app_cfg: AppConfig, env_cfg: EnvConfig) -> DailyContext:
     except Exception:
         bundle.reading_list = []
 
+    bundle.carry_forward = _load_carry_forward(vault_paths.daily, dismissed)
+
     return bundle
+
+
+def _load_carry_forward(daily_folder: Path, dismissed: set[str]) -> list[dict]:
+    """Unchecked items from yesterday's note, skipping calendar and reading sections."""
+    yesterday = (date.today() - timedelta(days=1)).isoformat()
+    yesterday_path = daily_folder / f"{yesterday}.md"
+    if not yesterday_path.exists():
+        return []
+    skip = {"Reading — Today's Links", "Calendar — Today's Events"}
+    items = []
+    current_section = None
+    for line in yesterday_path.read_text(encoding="utf-8").splitlines():
+        if line.startswith("## "):
+            current_section = line[3:].strip()
+        elif current_section and current_section not in skip and line.startswith("- [ ] "):
+            text = line[6:].strip()
+            if text and text not in dismissed:
+                items.append({"section": current_section, "text": text})
+    return items
+
+
+def _load_dismissed_from_yesterday(daily_folder: Path) -> set[str]:
+    """Return set of task text snippets that were ticked [x] in yesterday's daily note."""
+    yesterday = (date.today() - timedelta(days=1)).isoformat()
+    yesterday_path = daily_folder / f"{yesterday}.md"
+    if not yesterday_path.exists():
+        return set()
+    dismissed: set[str] = set()
+    for line in yesterday_path.read_text(encoding="utf-8").splitlines():
+        if line.startswith("- [x] "):
+            dismissed.add(line[6:].strip())
+    return dismissed
+
+
+def _is_dismissed(text: str, dismissed: set[str]) -> bool:
+    if not text or not dismissed:
+        return False
+    for item in dismissed:
+        if text in item or item.startswith(text[:40]):
+            return True
+    return False
 
 
 def _fetch_github_items(token: str) -> list[dict]:
@@ -119,3 +183,9 @@ def _load_legacy_module(module_name: str):
 def _legacy_module_path(module_name: str) -> Path:
     project_root = Path(__file__).resolve().parent.parent
     return project_root / f"{module_name}.py"
+
+
+def _ensure_project_root_on_path() -> None:
+    project_root = str(Path(__file__).resolve().parent.parent)
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)

@@ -106,6 +106,7 @@ class DailyContext:
     github_items: list[dict[str, Any]] = field(default_factory=list)
     slack_items: list[dict[str, Any]] = field(default_factory=list)
     reading_list: list[dict[str, Any]] = field(default_factory=list)
+    carry_forward: list[dict[str, Any]] = field(default_factory=list)
     today: str = ""
 
 

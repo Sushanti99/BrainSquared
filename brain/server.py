@@ -41,6 +41,10 @@ def create_app(runtime: AppRuntime) -> FastAPI:
     async def index():
         return FileResponse(Path(__file__).parent / "web" / "index.html")
 
+    @app.get("/brain-logo.png")
+    async def logo():
+        return FileResponse(Path(__file__).parent / "web" / "brain-logo.png", media_type="image/png")
+
     @app.get("/api/status")
     async def get_status():
         backend = get_backend(runtime.app_cfg)
@@ -78,14 +82,34 @@ def create_app(runtime: AppRuntime) -> FastAPI:
         )
 
     @app.post("/api/daily")
-    async def post_daily(force: bool = Query(default=False)):
+    async def post_daily(force: bool = Query(default=False), integrations: str = Query(default="")):
         try:
-            path = generate_daily_note(runtime.app_cfg, runtime.env_cfg, force=force)
+            enabled = set(integrations.split(",")) if integrations.strip() else None
+            path = generate_daily_note(runtime.app_cfg, runtime.env_cfg, force=force, enabled_integrations=enabled)
             return JSONResponse({"status": "ok", "path": str(path)})
         except FileExistsError as exc:
             return JSONResponse({"status": "error", "message": str(exc)}, status_code=409)
         except Exception as exc:
             return JSONResponse({"status": "error", "message": str(exc)}, status_code=500)
+
+    @app.patch("/api/daily/task")
+    async def patch_task(body: dict):
+        text = (body.get("text") or "").strip()
+        checked = bool(body.get("checked", False))
+        if not text:
+            return JSONResponse({"status": "error", "message": "text required"}, status_code=400)
+        vault_paths = resolve_vault_paths(runtime.app_cfg)
+        today_path = vault_paths.daily / f"{date.today().isoformat()}.md"
+        if not today_path.exists():
+            return JSONResponse({"status": "error", "message": "No daily note for today"}, status_code=404)
+        raw = today_path.read_text(encoding="utf-8")
+        lines = raw.splitlines()
+        for i, line in enumerate(lines):
+            if text in line and ("- [ ]" in line or "- [x]" in line):
+                lines[i] = line.replace("- [ ]", "- [x]") if checked else line.replace("- [x]", "- [ ]")
+                break
+        today_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        return JSONResponse({"status": "ok"})
 
     @app.get("/api/daily")
     async def get_daily(offset: int = Query(default=0)):
