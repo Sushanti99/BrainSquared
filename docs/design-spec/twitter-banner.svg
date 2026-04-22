@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 500" width="1500" height="500">
+  <style><![CDATA[
+    @import url('https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Caveat:wght@400;600&family=Inter:wght@500;700&display=swap');
+    .wm { font-family: 'Kalam', cursive; font-weight: 700; }
+    .eq { font-family: 'Kalam', cursive; font-weight: 700; }
+    .scrib { font-family: 'Caveat', cursive; font-weight: 400; }
+    .ui { font-family: 'Inter', sans-serif; font-weight: 700; }
+    .pill-text { font-family: 'Inter', sans-serif; font-weight: 700; letter-spacing: 0.1em; }
+  ]]></style>
+
+  <rect width="1500" height="500" fill="#FAFAF7"/>
+
+  <text x="1150" y="90" class="scrib" font-size="28" fill="#D0D0D0" transform="rotate(-4 1150 90)">a second brain</text>
+  <text x="90" y="440" class="scrib" font-size="26" fill="#D0D0D0" transform="rotate(3 90 440)">on your first</text>
+  <text x="1200" y="420" class="scrib" font-size="22" fill="#D5D5D5" transform="rotate(-2 1200 420)">notes · tasks · mail</text>
+
+  <path d="M 260,260 Q 340,240 410,250" fill="none" stroke="#CCC" stroke-width="2" stroke-linecap="round"/>
+  <path d="M 410,250 L 400,242 M 410,250 L 402,258" fill="none" stroke="#CCC" stroke-width="2" stroke-linecap="round"/>
+
+  <path d="M 1080,260 Q 1160,240 1230,250" fill="none" stroke="#CCC" stroke-width="2" stroke-linecap="round"/>
+  <path d="M 1230,250 L 1220,242 M 1230,250 L 1222,258" fill="none" stroke="#CCC" stroke-width="2" stroke-linecap="round"/>
+
+  <g transform="translate(120, 160) rotate(-3)">
+    <rect x="0" y="0" width="150" height="150" rx="18" ry="18" fill="#FAE0CE"/>
+    <rect x="18" y="18" width="60" height="22" rx="11" ry="11" fill="#F3C89E"/>
+    <text x="48" y="33" class="pill-text" font-size="10" fill="#111" text-anchor="middle">BRAIN</text>
+    <text x="75" y="90" class="ui" font-size="22" fill="#111" text-anchor="middle">Claude</text>
+    <text x="75" y="120" class="ui" font-size="13" fill="#333" text-anchor="middle">Code + API</text>
+  </g>
+
+  <text x="340" y="260" class="eq" font-size="64" fill="#111" text-anchor="middle">×</text>
+
+  <g transform="translate(400, 160) rotate(2)">
+    <rect x="0" y="0" width="150" height="150" rx="18" ry="18" fill="#D4E8F5"/>
+    <rect x="18" y="18" width="60" height="22" rx="11" ry="11" fill="#A8D0E8"/>
+    <text x="48" y="33" class="pill-text" font-size="10" fill="#111" text-anchor="middle">BRAIN</text>
+    <text x="75" y="90" class="ui" font-size="22" fill="#111" text-anchor="middle">Codex</text>
+    <text x="75" y="120" class="ui" font-size="13" fill="#333" text-anchor="middle">GPT + CLI</text>
+  </g>
+
+  <text x="620" y="260" class="eq" font-size="64" fill="#111" text-anchor="middle">=</text>
+
+  <g transform="translate(680, 120) rotate(-2)">
+    <rect x="0" y="0" width="220" height="220" rx="26" ry="26" fill="#D4EED9"/>
+    <rect x="22" y="22" width="80" height="26" rx="13" ry="13" fill="#A8D9B2"/>
+    <text x="62" y="40" class="pill-text" font-size="12" fill="#111" text-anchor="middle">BRAIN²</text>
+    <text x="110" y="140" class="wm" font-size="72" fill="#111" text-anchor="middle" letter-spacing="-1">brain</text>
+    <text x="180" y="115" class="wm" font-size="36" fill="#111" text-anchor="middle">2</text>
+    <text x="110" y="190" class="ui" font-size="13" fill="#333" text-anchor="middle">your notebook, squared</text>
+  </g>
+
+  <text x="960" y="250" class="wm" font-size="38" fill="#111">brainsquared</text>
+  <rect x="960" y="270" width="340" height="2" fill="#111" opacity="0.1"/>
+  <text x="960" y="310" class="ui" font-size="16" fill="#666">your AI subscription,</text>
+  <text x="960" y="335" class="ui" font-size="16" fill="#666">wired into your vault,</text>
+  <text x="960" y="360" class="ui" font-size="16" fill="#666">your mail, your calendar,</text>
+  <text x="960" y="385" class="ui" font-size="16" fill="#666">your whole day.</text>
+</svg>

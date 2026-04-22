@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>brain² — design handover · v1.0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Caveat:wght@400;500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #FAFAF7;
+    --paper-raised: #FFFFFF;
+    --ink: #111111;
+    --ink-muted: #5A5A5A;
+    --ink-faint: #9E9E9E;
+    --ink-ghost: #D0D0D0;
+    --rule: rgba(17,17,17,0.08);
+    --card-blue: #D4E8F5;
+    --card-peach: #FAE0CE;
+    --card-mint: #D4EED9;
+    --card-lavender: #E3DBF1;
+    --card-yellow: #FAF0C8;
+    --card-rose: #F5D4DC;
+    --pill-blue: #A8D0E8;
+    --pill-peach: #F3C89E;
+    --pill-mint: #A8D9B2;
+    --pill-lavender: #C6B8E0;
+    --pill-yellow: #EDD88A;
+    --pill-rose: #E8A8B8;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', sans-serif;
+    font-size: 15px; line-height: 1.55;
+    background: var(--paper); color: var(--ink);
+    letter-spacing: -0.005em;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 48px 48px 120px; }
+
+  header {
+    margin-bottom: 60px;
+    position: relative;
+  }
+  .wordmark {
+    font-family: 'Kalam', cursive;
+    font-weight: 700; font-size: 44px;
+    letter-spacing: -0.015em; line-height: 1;
+    display: inline-flex; align-items: baseline;
+    margin-bottom: 20px;
+  }
+  .wordmark .sup {
+    font-size: 0.55em; transform: translateY(-0.6em); margin-left: 3px;
+  }
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--ink-muted); margin-bottom: 8px;
+  }
+  h1 {
+    font-family: 'Kalam', cursive;
+    font-weight: 700; font-size: 64px;
+    line-height: 1.05; letter-spacing: -0.015em;
+    margin: 0 0 14px;
+  }
+  .lede {
+    font-size: 18px; color: var(--ink-muted);
+    max-width: 640px; margin: 0;
+  }
+  .scribble {
+    position: absolute;
+    top: 60px; right: 40px;
+    font-family: 'Caveat', cursive;
+    color: var(--ink-ghost); font-size: 28px;
+    transform: rotate(-4deg);
+    pointer-events: none;
+  }
+
+  section { margin-bottom: 72px; }
+  .section-title {
+    font-family: 'Kalam', cursive;
+    font-weight: 700; font-size: 36px;
+    letter-spacing: -0.01em; line-height: 1.1;
+    margin: 0 0 8px;
+  }
+  .section-sub {
+    color: var(--ink-muted); font-size: 15px;
+    margin: 0 0 28px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+  }
+
+  .card {
+    border-radius: 20px;
+    padding: 26px 26px 24px;
+    text-decoration: none; color: var(--ink);
+    display: flex; flex-direction: column;
+    min-height: 220px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03), 0 10px 24px -14px rgba(0,0,0,0.10);
+    transition: transform 260ms cubic-bezier(0.2, 0.8, 0.3, 1);
+  }
+  .card:hover { transform: translateY(-4px) rotate(0deg) !important; }
+  .card:nth-child(1) { transform: rotate(-1.5deg); }
+  .card:nth-child(2) { transform: rotate(1deg); }
+  .card:nth-child(3) { transform: rotate(-0.5deg); }
+  .card:nth-child(4) { transform: rotate(1.5deg); }
+  .card:nth-child(5) { transform: rotate(-1deg); }
+  .card:nth-child(6) { transform: rotate(0.5deg); }
+  .card:nth-child(7) { transform: rotate(-1.5deg); }
+  .card:nth-child(8) { transform: rotate(1deg); }
+
+  .pill {
+    display: inline-block; align-self: flex-start;
+    padding: 5px 12px; border-radius: 999px;
+    font-family: 'Inter', sans-serif;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.14em; color: var(--ink);
+    margin-bottom: 14px;
+  }
+  .card h3 {
+    font-family: 'Inter', sans-serif;
+    font-weight: 700; font-size: 20px;
+    letter-spacing: -0.02em; line-height: 1.2;
+    margin: 0 0 8px;
+  }
+  .card p {
+    font-size: 14px; line-height: 1.5;
+    color: var(--ink); opacity: 0.75;
+    margin: 0 0 auto;
+    flex: 1;
+  }
+  .card .meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: var(--ink);
+    opacity: 0.55;
+    margin-top: 18px;
+    letter-spacing: 0.04em;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .card .meta .open {
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+
+  .c-peach { background: var(--card-peach); }
+  .c-peach .pill { background: var(--pill-peach); }
+  .c-blue { background: var(--card-blue); }
+  .c-blue .pill { background: var(--pill-blue); }
+  .c-mint { background: var(--card-mint); }
+  .c-mint .pill { background: var(--pill-mint); }
+  .c-lavender { background: var(--card-lavender); }
+  .c-lavender .pill { background: var(--pill-lavender); }
+  .c-yellow { background: var(--card-yellow); }
+  .c-yellow .pill { background: var(--pill-yellow); }
+  .c-rose { background: var(--card-rose); }
+  .c-rose .pill { background: var(--pill-rose); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="wordmark">brain<span class="sup">²</span></div>
+  <div class="eyebrow">HANDOVER · v1.0 · 2026-04-22</div>
+  <h1>the whole package.</h1>
+  <p class="lede">landing page, product UI (light + dark), logos, twitter banner, and a full markdown spec you can feed to a coding agent. click anything.</p>
+  <div class="scribble">start with the landing</div>
+</header>
+
+<section>
+  <div class="section-title">01 · marketing & landing</div>
+  <p class="section-sub">the public face. hero equation, feature grid, simple footer.</p>
+  <div class="grid">
+    <a class="card c-peach" href="landing.html" target="_blank">
+      <span class="pill">LANDING</span>
+      <h3>landing page</h3>
+      <p>claude × codex = brain². the whole pitch in one scroll with sticky-note features and a simple how-it-works flow.</p>
+      <div class="meta"><span>landing.html</span><span class="open">open →</span></div>
+    </a>
+  </div>
+</section>
+
+<section>
+  <div class="section-title">02 · product UI</div>
+  <p class="section-sub">the app itself, restyled from the three current screens.</p>
+  <div class="grid">
+    <a class="card c-blue" href="product-light.html" target="_blank">
+      <span class="pill">PRODUCT · LIGHT</span>
+      <h3>tasks tab — light</h3>
+      <p>the daily note on the left, chat on the right. glassmorphic chat bubbles with subtle rotation.</p>
+      <div class="meta"><span>product-light.html</span><span class="open">open →</span></div>
+    </a>
+    <a class="card c-lavender" href="product-dark.html" target="_blank">
+      <span class="pill">PRODUCT · DARK</span>
+      <h3>tasks tab — dark</h3>
+      <p>desaturated pastels on charcoal. moody, not candy. atmospheric radial gradients.</p>
+      <div class="meta"><span>product-dark.html</span><span class="open">open →</span></div>
+    </a>
+    <a class="card c-mint" href="product-integrations.html" target="_blank">
+      <span class="pill">PRODUCT · INTEGRATIONS</span>
+      <h3>integrations grid</h3>
+      <p>gmail, calendar, notion, slack, github, linear, whatsapp. toggle the theme in-page.</p>
+      <div class="meta"><span>product-integrations.html</span><span class="open">open →</span></div>
+    </a>
+  </div>
+</section>
+
+<section>
+  <div class="section-title">03 · logos & social</div>
+  <p class="section-sub">SVG assets. all scalable, all editable.</p>
+  <div class="grid">
+    <a class="card c-yellow" href="wordmark.svg" target="_blank">
+      <span class="pill">LOGO · WORDMARK</span>
+      <h3>wordmark.svg</h3>
+      <p>full "brain²" in Kalam handwritten bold. for the top-left of every page and every landing hero.</p>
+      <div class="meta"><span>wordmark.svg</span><span class="open">open →</span></div>
+    </a>
+    <a class="card c-rose" href="mark-avatar.svg" target="_blank">
+      <span class="pill">LOGO · AVATAR</span>
+      <h3>mark-avatar.svg</h3>
+      <p>512×512 b² on white, framed by a pastel gradient. use as twitter/discord/app avatar.</p>
+      <div class="meta"><span>mark-avatar.svg</span><span class="open">open →</span></div>
+    </a>
+    <a class="card c-blue" href="favicon.svg" target="_blank">
+      <span class="pill">LOGO · FAVICON</span>
+      <h3>favicon.svg</h3>
+      <p>64×64 b² on white, no frame. simple and legible at 16px tab size.</p>
+      <div class="meta"><span>favicon.svg</span><span class="open">open →</span></div>
+    </a>
+    <a class="card c-peach" href="twitter-banner.svg" target="_blank">
+      <span class="pill">SOCIAL · BANNER</span>
+      <h3>twitter-banner.svg</h3>
+      <p>1500×500 X/Twitter header with the claude × codex = brain² equation and marginalia.</p>
+      <div class="meta"><span>twitter-banner.svg</span><span class="open">open →</span></div>
+    </a>
+  </div>
+</section>
+
+<section>
+  <div class="section-title">04 · the spec</div>
+  <p class="section-sub">hand this to your coding agent. every token, component, and rule defined.</p>
+  <div class="grid">
+    <a class="card c-mint" href="SPEC.md" target="_blank">
+      <span class="pill">HANDOVER</span>
+      <h3>SPEC.md</h3>
+      <p>the complete brand & design system. color tokens for both themes, typography, 10 components, motion, voice, copy rules, and an implementation checklist.</p>
+      <div class="meta"><span>SPEC.md</span><span class="open">open →</span></div>
+    </a>
+  </div>
+</section>
+
+</div>
+</body>
+</html>

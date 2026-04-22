@@ -51,11 +51,19 @@ def create_app(runtime: AppRuntime) -> FastAPI:
             headers=NO_CACHE_HEADERS,
         )
 
-    @app.get("/brain-logo.png")
-    async def logo():
+    @app.get("/favicon.svg")
+    async def favicon():
         return FileResponse(
-            Path(__file__).parent / "web" / "brain-logo.png",
-            media_type="image/png",
+            Path(__file__).parent / "web" / "favicon.svg",
+            media_type="image/svg+xml",
+            headers=NO_CACHE_HEADERS,
+        )
+
+    @app.get("/wordmark.svg")
+    async def wordmark():
+        return FileResponse(
+            Path(__file__).parent / "web" / "wordmark.svg",
+            media_type="image/svg+xml",
             headers=NO_CACHE_HEADERS,
         )
 

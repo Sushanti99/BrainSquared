@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>brain² — integrations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Caveat:wght@400;500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #FAFAF7;
+    --paper-raised: #FFFFFF;
+    --paper-sunken: #F0EEE8;
+    --ink: #111111;
+    --ink-muted: #5A5A5A;
+    --ink-faint: #9E9E9E;
+    --ink-ghost: #D0D0D0;
+    --rule: rgba(17,17,17,0.08);
+    --card-blue: #D4E8F5;
+    --card-peach: #FAE0CE;
+    --card-mint: #D4EED9;
+    --card-lavender: #E3DBF1;
+    --card-yellow: #FAF0C8;
+    --card-rose: #F5D4DC;
+    --pill-blue: #A8D0E8;
+    --pill-peach: #F3C89E;
+    --pill-mint: #A8D9B2;
+    --pill-lavender: #C6B8E0;
+    --pill-yellow: #EDD88A;
+    --pill-rose: #E8A8B8;
+    --accent: #7BC47F;
+  }
+  .dark {
+    --paper: #0E0E0D;
+    --paper-raised: #181816;
+    --paper-sunken: #0A0A09;
+    --ink: #F4F2EA;
+    --ink-muted: #9E9A90;
+    --ink-faint: #5C5A54;
+    --ink-ghost: #2A2A27;
+    --rule: rgba(244,242,234,0.08);
+    --card-blue: #1F3040;
+    --card-peach: #3D2B1F;
+    --card-mint: #1E3328;
+    --card-lavender: #2C2640;
+    --card-yellow: #3A3220;
+    --card-rose: #3A2328;
+    --pill-blue: #4A6D8A;
+    --pill-peach: #8B5D38;
+    --pill-mint: #4F8466;
+    --pill-lavender: #6B5A99;
+    --pill-yellow: #8A7A38;
+    --pill-rose: #8B4E5A;
+    --accent: #6BC47F;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', sans-serif;
+    font-size: 15px; line-height: 1.55;
+    background: var(--paper); color: var(--ink);
+    letter-spacing: -0.005em;
+    min-height: 100vh;
+    transition: background 300ms, color 300ms;
+  }
+  body.dark {
+    background-image:
+      radial-gradient(ellipse at top left, rgba(107,90,153,0.08), transparent 50%),
+      radial-gradient(ellipse at bottom right, rgba(75,132,102,0.06), transparent 50%);
+    background-attachment: fixed;
+  }
+  .app {
+    max-width: 1440px; margin: 0 auto;
+    padding: 20px 28px;
+    min-height: 100vh;
+  }
+
+  .frame {
+    background: var(--paper-raised);
+    border-radius: 24px;
+    border: 1px solid var(--rule);
+    padding: 20px 28px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .brand-wrap { display: flex; align-items: center; gap: 14px; }
+  .wordmark {
+    font-family: 'Kalam', cursive;
+    font-weight: 700; font-size: 30px;
+    color: var(--ink); line-height: 1;
+    display: inline-flex; align-items: baseline;
+  }
+  .wordmark .sup { font-size: 0.55em; transform: translateY(-0.6em); margin-left: 2px; }
+  .session-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: var(--ink-muted);
+    padding-left: 14px; border-left: 1px solid var(--rule);
+  }
+  .session-meta .agent { color: var(--ink); font-weight: 500; }
+
+  .tabs {
+    display: flex; gap: 2px;
+    background: var(--paper-sunken);
+    border-radius: 999px; padding: 4px;
+  }
+  .tabs button {
+    background: transparent; border: none;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500; font-size: 14px;
+    color: var(--ink-muted);
+    padding: 9px 22px; border-radius: 999px;
+    cursor: pointer; transition: all 180ms;
+  }
+  .tabs button:hover { color: var(--ink); }
+  .tabs button.active { background: var(--ink); color: var(--paper); }
+
+  .top-right { display: flex; align-items: center; gap: 14px; }
+  .theme-toggle {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    background: transparent; border: 1px solid var(--rule);
+    color: var(--ink-muted);
+    padding: 8px 12px; border-radius: 999px;
+    cursor: pointer; transition: all 180ms;
+  }
+  .theme-toggle:hover { color: var(--ink); }
+  .end-btn {
+    background: var(--ink); color: var(--paper);
+    font-family: 'Inter', sans-serif; font-weight: 600;
+    font-size: 13px;
+    border: none; border-radius: 999px;
+    padding: 10px 18px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 10px;
+  }
+  .end-btn .arrow {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #333;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+  }
+  body.dark .end-btn .arrow { background: #DDD; color: var(--paper); }
+
+  /* ============ PAGE CONTENT ============ */
+  .page-header {
+    margin: 40px 8px 36px;
+    position: relative;
+  }
+  .page-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--ink-muted);
+    margin-bottom: 10px;
+  }
+  .page-title {
+    font-family: 'Kalam', cursive;
+    font-weight: 700; font-size: 56px;
+    line-height: 1.05; letter-spacing: -0.015em;
+    margin: 0 0 12px;
+  }
+  .page-sub {
+    font-size: 17px; color: var(--ink-muted);
+    margin: 0; max-width: 680px;
+  }
+  .page-scribble {
+    position: absolute;
+    top: 20px; right: 40px;
+    font-family: 'Caveat', cursive;
+    color: var(--ink-ghost); font-size: 28px;
+    transform: rotate(-4deg); pointer-events: none;
+  }
+
+  /* ============ GRID ============ */
+  .integrations-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin: 0 8px;
+  }
+
+  .intg {
+    border-radius: 22px;
+    padding: 24px 22px 20px;
+    position: relative;
+    display: flex; flex-direction: column;
+    min-height: 220px;
+    transition: transform 280ms cubic-bezier(0.2, 0.8, 0.3, 1);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03), 0 10px 24px -14px rgba(0,0,0,0.08);
+    border: 1px solid transparent;
+  }
+  body.dark .intg {
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2), 0 14px 32px -16px rgba(0,0,0,0.4);
+    border-color: var(--rule);
+  }
+  .intg:hover { transform: translateY(-4px) rotate(0deg); }
+
+  /* rotation variety */
+  .intg:nth-child(1) { transform: rotate(-1.5deg); }
+  .intg:nth-child(2) { transform: rotate(1deg); }
+  .intg:nth-child(3) { transform: rotate(-0.5deg); }
+  .intg:nth-child(4) { transform: rotate(1.5deg); }
+  .intg:nth-child(5) { transform: rotate(1deg); }
+  .intg:nth-child(6) { transform: rotate(-1.5deg); }
+  .intg:nth-child(7) { transform: rotate(-1deg); }
+  .intg:nth-child(8) { transform: rotate(1deg); }
+  .intg:nth-child(9) { transform: rotate(-0.5deg); }
+
+  .intg.c-peach { background: var(--card-peach); }
+  .intg.c-blue { background: var(--card-blue); }
+  .intg.c-lavender { background: var(--card-lavender); }
+  .intg.c-mint { background: var(--card-mint); }
+  .intg.c-yellow { background: var(--card-yellow); }
+  .intg.c-rose { background: var(--card-rose); }
+
+  .intg .pill {
+    display: inline-block; align-self: flex-start;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-family: 'Inter', sans-serif;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.14em; color: var(--ink);
+    margin-bottom: 14px;
+  }
+  body.dark .intg .pill { color: var(--ink); }
+  .intg.c-peach .pill { background: var(--pill-peach); }
+  .intg.c-blue .pill { background: var(--pill-blue); }
+  .intg.c-lavender .pill { background: var(--pill-lavender); }
+  .intg.c-mint .pill { background: var(--pill-mint); }
+  .intg.c-yellow .pill { background: var(--pill-yellow); }
+  .intg.c-rose .pill { background: var(--pill-rose); }
+
+  .intg .logo {
+    width: 44px; height: 44px; border-radius: 14px;
+    background: rgba(255,255,255,0.6);
+    border: 1px solid rgba(17,17,17,0.08);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; margin-bottom: 14px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  body.dark .intg .logo {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.1);
+  }
+
+  .intg h3 {
+    font-family: 'Inter', sans-serif;
+    font-weight: 700; font-size: 19px;
+    letter-spacing: -0.015em;
+    margin: 0 0 6px;
+    color: var(--ink);
+  }
+  .intg p {
+    font-size: 14px; line-height: 1.5;
+    color: var(--ink); opacity: 0.75;
+    margin: 0 0 18px; flex: 1;
+  }
+
+  .intg-action {
+    border-radius: 999px;
+    padding: 8px 16px;
+    font-family: 'Inter', sans-serif; font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    align-self: flex-start;
+    display: inline-flex; align-items: center; gap: 8px;
+    transition: transform 160ms;
+    border: none;
+  }
+  .intg-action:hover { transform: translateY(-1px); }
+  .intg-action.connect {
+    background: var(--ink); color: var(--paper);
+  }
+  .intg-action.disconnect {
+    background: rgba(255,255,255,0.5); color: var(--ink);
+    border: 1px solid rgba(17,17,17,0.1);
+  }
+  body.dark .intg-action.disconnect {
+    background: rgba(255,255,255,0.08); color: var(--ink);
+    border-color: rgba(255,255,255,0.12);
+  }
+  .intg-action.soon {
+    background: transparent; color: var(--ink-muted);
+    border: 1.5px dashed rgba(17,17,17,0.2);
+    cursor: default;
+  }
+  body.dark .intg-action.soon {
+    border-color: rgba(244,242,234,0.15);
+  }
+
+  .intg-status {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--ink-muted);
+    margin-top: 10px;
+  }
+  .intg-status.connected {
+    color: #3E8A4C;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  body.dark .intg-status.connected { color: #7BC47F; }
+  .intg-status.connected::before {
+    content: "";
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #3E8A4C;
+  }
+  body.dark .intg-status.connected::before { background: #7BC47F; }
+
+  .page-label {
+    position: fixed; bottom: 24px; left: 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--ink-faint);
+    background: var(--paper-raised);
+    padding: 8px 12px; border-radius: 8px;
+    border: 1px solid var(--rule);
+  }
+
+  @media (max-width: 1100px) {
+    .integrations-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <header class="frame">
+    <div class="brand-wrap">
+      <div class="wordmark">brain<span class="sup">²</span></div>
+      <div class="session-meta">
+        <span class="agent">agent: codex</span> · session 2026-04-22-1
+      </div>
+    </div>
+    <div class="tabs">
+      <button>Home</button>
+      <button>Tasks</button>
+      <button class="active">Integrations</button>
+    </div>
+    <div class="top-right">
+      <button class="theme-toggle" onclick="document.body.classList.toggle('dark')">◐ theme</button>
+      <button class="end-btn">End & Summarize <span class="arrow">→</span></button>
+    </div>
+  </header>
+
+  <div class="page-header">
+    <div class="page-eyebrow">INTEGRATIONS</div>
+    <h1 class="page-title">connect your tools.</h1>
+    <p class="page-sub">brain² pulls context from every tool you already use and writes it into your daily note. one OAuth click per connector. your data stays in your vault.</p>
+    <div class="page-scribble">one click each</div>
+  </div>
+
+  <div class="integrations-grid">
+
+    <div class="intg c-peach">
+      <span class="pill">MAIL</span>
+      <div class="logo">✉</div>
+      <h3>Gmail</h3>
+      <p>Pull recent emails and action items into your daily note.</p>
+      <button class="intg-action connect">Connect →</button>
+    </div>
+
+    <div class="intg c-blue">
+      <span class="pill">CALENDAR</span>
+      <div class="logo">📅</div>
+      <h3>Google Calendar</h3>
+      <p>Today's events and tomorrow's meetings in your note.</p>
+      <button class="intg-action connect">Connect →</button>
+    </div>
+
+    <div class="intg c-lavender">
+      <span class="pill">DOCS</span>
+      <div class="logo">📄</div>
+      <h3>Notion</h3>
+      <p>Sync open tasks and pages from your Notion workspace.</p>
+      <button class="intg-action connect">Connect →</button>
+    </div>
+
+    <div class="intg c-rose">
+      <span class="pill">CHAT</span>
+      <div class="logo">💬</div>
+      <h3>Slack</h3>
+      <p>Surface unread threads and mentions as daily context.</p>
+      <button class="intg-action connect">Connect →</button>
+    </div>
+
+    <div class="intg c-yellow">
+      <span class="pill">CODE</span>
+      <div class="logo">🐙</div>
+      <h3>GitHub</h3>
+      <p>Track open PRs, issues, and review requests.</p>
+      <button class="intg-action connect">Connect →</button>
+    </div>
+
+    <div class="intg c-mint">
+      <span class="pill">ISSUES</span>
+      <div class="logo">▲</div>
+      <h3>Linear</h3>
+      <p>Track issues and project updates from Linear.</p>
+      <div class="intg-status connected">connected</div>
+      <button class="intg-action disconnect" style="margin-top:10px">Disconnect</button>
+    </div>
+
+    <div class="intg c-blue">
+      <span class="pill">CHAT</span>
+      <div class="logo">📱</div>
+      <h3>WhatsApp</h3>
+      <p>Bring WhatsApp message context into your vault.</p>
+      <button class="intg-action soon">coming soon</button>
+    </div>
+
+    <div class="intg c-peach">
+      <span class="pill">CHAT</span>
+      <div class="logo">💭</div>
+      <h3>iMessage</h3>
+      <p>Pull iMessage threads on Mac into daily context.</p>
+      <button class="intg-action soon">coming soon</button>
+    </div>
+
+    <div class="intg c-mint">
+      <span class="pill">SOCIAL</span>
+      <div class="logo">💼</div>
+      <h3>LinkedIn</h3>
+      <p>Track messages and connection activity.</p>
+      <button class="intg-action soon">coming soon</button>
+    </div>
+
+  </div>
+
+</div>
+
+<div class="page-label">PRODUCT UI · INTEGRATIONS · TOGGLE THEME ABOVE</div>
+
+</body>
+</html>
