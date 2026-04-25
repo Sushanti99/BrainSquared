@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 110" width="320" height="110">
-  <style><![CDATA[
-    @import url('https://fonts.googleapis.com/css2?family=Kalam:wght@700&display=swap');
-    .wm { font-family: 'Kalam', cursive; font-weight: 700; }
-  ]]></style>
-  <text x="20" y="80" class="wm" font-size="76" fill="#111111" letter-spacing="-1">brain</text>
-  <text x="220" y="48" class="wm" font-size="42" fill="#111111">2</text>
-</svg>

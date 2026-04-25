@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <style><![CDATA[
-    @import url('https://fonts.googleapis.com/css2?family=Kalam:wght@700&display=swap');
-    .mk { font-family: 'Kalam', cursive; font-weight: 700; }
-  ]]></style>
-  <rect width="64" height="64" rx="14" ry="14" fill="#FAFAF7"/>
-  <text x="28" y="44" class="mk" font-size="36" fill="#111111" text-anchor="middle" letter-spacing="-1">b</text>
-  <text x="48" y="28" class="mk" font-size="18" fill="#111111" text-anchor="middle">2</text>
-</svg>
