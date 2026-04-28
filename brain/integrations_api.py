@@ -24,15 +24,19 @@ GOOGLE_SCOPES = [
     "https://www.googleapis.com/auth/calendar.readonly",
 ]
 
-_GOOGLE_CLIENT_CONFIG = {
-    "web": {
-        "client_id": "263469754733-uhvg4s0mfbsan9uo6lae52mbemihl7vp.apps.googleusercontent.com",
-        "client_secret": "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",
-        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-        "token_uri": "https://oauth2.googleapis.com/token",
-        "redirect_uris": ["http://localhost:3000/api/integrations/google/callback"],
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
+
+def _get_google_client_config() -> dict:
+    return {
+        "web": {
+            "client_id": GOOGLE_CLIENT_ID,
+            "client_secret": GOOGLE_CLIENT_SECRET,
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "redirect_uris": ["http://localhost:3000/api/integrations/google/callback"],
+        }
     }
-}
 
 # ── GitHub ────────────────────────────────────────────────────────────────────
 
@@ -161,7 +165,7 @@ def register(app: "FastAPI", runtime: "AppRuntime") -> None:
             from google_auth_oauthlib.flow import Flow
             state = secrets.token_urlsafe(16)
             redirect_uri = str(request.base_url).rstrip("/") + "/api/integrations/google/callback"
-            flow = Flow.from_client_config(_GOOGLE_CLIENT_CONFIG, scopes=GOOGLE_SCOPES, redirect_uri=redirect_uri)
+            flow = Flow.from_client_config(_get_google_client_config(), scopes=GOOGLE_SCOPES, redirect_uri=redirect_uri)
             auth_url, _ = flow.authorization_url(prompt="consent", access_type="offline", state=state)
             _oauth_states[state] = (flow, redirect_uri)
             return RedirectResponse(auth_url)
