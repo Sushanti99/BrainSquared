@@ -718,11 +718,11 @@
   <div class="waitlist-badge">premium · coming soon</div>
   <h2>brain², but supercharged.</h2>
   <p>sync across devices, team vaults, and deeper integrations. <br>join the wishlist and be first to know.</p>
-  <form class="waitlist-form" action="https://formspree.io/sushanti@berkeley.edu" method="POST">
-    <input type="email" name="email" placeholder="your@email.com" required>
-    <button type="submit">join wishlist</button>
+  <form class="waitlist-form" id="waitlist-form">
+    <input type="email" name="email" id="waitlist-email" placeholder="gavin@hooli.com" required>
+    <button type="submit" id="waitlist-btn">join wishlist</button>
   </form>
-  <div class="waitlist-note">no spam · unsubscribe anytime</div>
+  <div class="waitlist-note" id="waitlist-status">no spam · unsubscribe anytime</div>
 </section>
 
 <!-- FOOTER CTA -->
@@ -745,5 +745,39 @@
   <div>© 2026 · built for people who take notes</div>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const supabase = window.supabase.createClient(
+    'https://mrtlxmywvtqhvmpgcvsp.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ydGx4bXl3dnRxaHZtcGdjdnNwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyOTk4MDksImV4cCI6MjA5Mjg3NTgwOX0.DlUbR8xRMpXW5eoJmwtlz6UC3HYGPC1fl6-Ov-95PLw'
+  );
+
+  document.getElementById('waitlist-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('waitlist-btn');
+    const status = document.getElementById('waitlist-status');
+    const emailInput = document.getElementById('waitlist-email');
+    const email = emailInput.value.trim();
+
+    btn.disabled = true;
+    btn.textContent = 'joining...';
+
+    const { error } = await supabase.from('waitlist').insert({ email });
+
+    if (error) {
+      if (error.code === '23505') {
+        status.textContent = "you're already on the list!";
+      } else {
+        status.textContent = 'something went wrong, try again';
+      }
+      btn.disabled = false;
+      btn.textContent = 'join wishlist';
+    } else {
+      status.textContent = "you're in! we'll be in touch.";
+      btn.textContent = 'joined ✓';
+      emailInput.value = '';
+    }
+  });
+</script>
 </body>
 </html>
