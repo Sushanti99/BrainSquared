@@ -608,6 +608,41 @@
     :root[data-theme="dark"] .composer:focus-within {
       box-shadow: 0 0 0 4px rgba(244,242,234,0.04);
     }
+    .composer-inner {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+    }
+    .chips-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .chips-row:empty { display: none; }
+    .at-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px 3px 8px;
+      border-radius: 999px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      background: var(--card-mint);
+      color: var(--ink);
+      cursor: default;
+    }
+    .at-chip .chip-remove {
+      cursor: pointer;
+      opacity: 0.5;
+      font-size: 13px;
+      line-height: 1;
+      margin-left: 2px;
+    }
+    .at-chip .chip-remove:hover { opacity: 1; }
     .composer textarea {
       flex: 1;
       border: none;
@@ -620,8 +655,48 @@
       min-height: 24px;
       max-height: 120px;
       line-height: 1.5;
+      width: 100%;
     }
     .composer textarea::placeholder { color: var(--ink-faint); }
+
+    /* @ dropdown */
+    .at-dropdown {
+      display: none;
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 0;
+      background: var(--paper-raised);
+      border: 1px solid var(--rule);
+      border-radius: 14px;
+      box-shadow: 0 8px 32px -8px rgba(0,0,0,0.16);
+      padding: 6px;
+      min-width: 200px;
+      z-index: 200;
+    }
+    .at-dropdown.open { display: block; }
+    .at-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: 9px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: background 120ms;
+    }
+    .at-option:hover, .at-option.focused { background: var(--paper-sunken); }
+    .at-option .at-opt-icon {
+      font-size: 16px;
+      width: 22px;
+      text-align: center;
+    }
+    .at-option .at-opt-name { flex: 1; }
+    .at-option .at-opt-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--ink-muted);
+    }
     .send-btn {
       background: var(--ink);
       color: var(--paper);
@@ -1184,9 +1259,13 @@
 
       <div class="composer-wrap">
         <form class="composer" id="composer">
-          <textarea id="input" placeholder="ask brain² to work on the vault…" rows="1"></textarea>
+          <div class="composer-inner">
+            <div class="chips-row" id="chipsRow"></div>
+            <textarea id="input" placeholder="ask brain² to work on the vault… (type @ to tag an integration)" rows="1"></textarea>
+          </div>
           <button class="send-btn" id="sendBtn" type="submit">Send <span class="arrow">→</span></button>
         </form>
+        <div class="at-dropdown" id="atDropdown"></div>
         <div class="status" id="statusWrap">
           <span class="status-dot" id="statusDot"></span>
           <span id="status">Connecting...</span>
@@ -1314,6 +1393,138 @@
   inputEl.addEventListener("input", () => {
     inputEl.style.height = "auto";
     inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + "px";
+    handleAtMention();
+  });
+
+  // ── @ mention system ────────────────────────────────────────────────────────
+  const atDropdown = document.getElementById("atDropdown");
+  const chipsRow   = document.getElementById("chipsRow");
+
+  const INT_META = {
+    gmail:    { icon: "✉️",  label: "Gmail" },
+    calendar: { icon: "📅",  label: "Calendar" },
+    notion:   { icon: "📝",  label: "Notion" },
+    github:   { icon: "🐙",  label: "GitHub" },
+    slack:    { icon: "💬",  label: "Slack" },
+    linear:   { icon: "📐",  label: "Linear" },
+    linkedin: { icon: "💼",  label: "LinkedIn" },
+    whatsapp: { icon: "📱",  label: "WhatsApp" },
+    obsidian: { icon: "🔮",  label: "Obsidian" },
+  };
+
+  let connectedIntegrations = [];
+  let atQuery = null;
+  let atFocusIdx = 0;
+  let taggedIntegrations = [];
+
+  async function refreshConnectedIntegrations() {
+    try {
+      const resp = await fetch("/api/integrations/status");
+      if (!resp.ok) return;
+      const status = await resp.json();
+      connectedIntegrations = Object.entries(status)
+        .filter(([, v]) => v)
+        .map(([k]) => k);
+    } catch { connectedIntegrations = []; }
+  }
+  refreshConnectedIntegrations();
+
+  function getAtQueryAtCursor() {
+    const val = inputEl.value;
+    const pos = inputEl.selectionStart;
+    const before = val.slice(0, pos);
+    const match = before.match(/@(\w*)$/);
+    return match ? match[1] : null;
+  }
+
+  function handleAtMention() {
+    const query = getAtQueryAtCursor();
+    if (query === null) { closeDropdown(); return; }
+    atQuery = query;
+    const filtered = connectedIntegrations.filter(id =>
+      id.startsWith(query.toLowerCase()) && !taggedIntegrations.includes(id)
+    );
+    if (!filtered.length) { closeDropdown(); return; }
+    atFocusIdx = 0;
+    renderDropdown(filtered);
+  }
+
+  function renderDropdown(ids) {
+    atDropdown.innerHTML = "";
+    ids.forEach((id, i) => {
+      const meta = INT_META[id] || { icon: "🔗", label: id };
+      const opt = document.createElement("div");
+      opt.className = "at-option" + (i === atFocusIdx ? " focused" : "");
+      opt.innerHTML = `<span class="at-opt-icon">${meta.icon}</span>
+        <span class="at-opt-name">${meta.label}</span>
+        <span class="at-opt-tag">@${id}</span>`;
+      opt.addEventListener("mousedown", e => { e.preventDefault(); selectIntegration(id); });
+      atDropdown.appendChild(opt);
+    });
+    atDropdown.classList.add("open");
+  }
+
+  function closeDropdown() {
+    atDropdown.classList.remove("open");
+    atQuery = null;
+  }
+
+  function selectIntegration(id) {
+    // Remove the @query from textarea
+    const val = inputEl.value;
+    const pos = inputEl.selectionStart;
+    const before = val.slice(0, pos).replace(/@\w*$/, "");
+    const after = val.slice(pos);
+    inputEl.value = before + after;
+    inputEl.style.height = "auto";
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + "px";
+
+    // Add chip
+    taggedIntegrations.push(id);
+    renderChips();
+    closeDropdown();
+    inputEl.focus();
+  }
+
+  function renderChips() {
+    chipsRow.innerHTML = "";
+    taggedIntegrations.forEach(id => {
+      const meta = INT_META[id] || { icon: "🔗", label: id };
+      const chip = document.createElement("span");
+      chip.className = "at-chip";
+      chip.innerHTML = `${meta.icon} @${id} <span class="chip-remove" data-id="${id}">×</span>`;
+      chip.querySelector(".chip-remove").addEventListener("click", () => {
+        taggedIntegrations = taggedIntegrations.filter(t => t !== id);
+        renderChips();
+      });
+      chipsRow.appendChild(chip);
+    });
+  }
+
+  inputEl.addEventListener("keydown", e => {
+    if (!atDropdown.classList.contains("open")) return;
+    const opts = atDropdown.querySelectorAll(".at-option");
+    if (!opts.length) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      atFocusIdx = (atFocusIdx + 1) % opts.length;
+      opts.forEach((o, i) => o.classList.toggle("focused", i === atFocusIdx));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      atFocusIdx = (atFocusIdx - 1 + opts.length) % opts.length;
+      opts.forEach((o, i) => o.classList.toggle("focused", i === atFocusIdx));
+    } else if (e.key === "Enter" || e.key === "Tab") {
+      const ids = connectedIntegrations.filter(id =>
+        id.startsWith((atQuery || "").toLowerCase()) && !taggedIntegrations.includes(id)
+      );
+      if (ids[atFocusIdx]) { e.preventDefault(); selectIntegration(ids[atFocusIdx]); }
+    } else if (e.key === "Escape") {
+      closeDropdown();
+    }
+  });
+
+  document.addEventListener("click", e => {
+    if (!atDropdown.contains(e.target)) closeDropdown();
   });
 
   let socket = null;
@@ -1561,15 +1772,25 @@
     event.preventDefault();
     const content = inputEl.value.trim();
     if (!content || !socket || socket.readyState !== WebSocket.OPEN || running) return;
-    appendMessage("user", "", content);
-    socket.send(JSON.stringify({ type: "message", content }));
+    const tags = [...taggedIntegrations];
+    const tagPrefix = tags.length ? `[action: ${tags.map(t => "@" + t).join(" ")}] ` : "";
+    const fullContent = tagPrefix + content;
+    const displayContent = tags.length
+      ? `${tags.map(t => `@${t}`).join(" ")} ${content}`
+      : content;
+    appendMessage("user", "", displayContent);
+    socket.send(JSON.stringify({ type: "message", content: fullContent }));
     inputEl.value = "";
     inputEl.style.height = "auto";
+    taggedIntegrations = [];
+    renderChips();
+    closeDropdown();
     setRunning(true);
     updateStatus("Thinking...", true);
   });
 
   inputEl.addEventListener("keydown", (event) => {
+    if (atDropdown.classList.contains("open")) return;
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       composer.requestSubmit();
