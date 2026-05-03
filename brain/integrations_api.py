@@ -27,11 +27,28 @@ GOOGLE_SCOPES = [
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
 
+def _load_google_credentials_from_file() -> tuple[str, str]:
+    """Read client_id/secret from credentials.json if env vars are not set."""
+    creds_file = os.getenv("GOOGLE_CREDENTIALS_FILE", "")
+    if not creds_file:
+        return "", ""
+    try:
+        import json
+        data = json.loads(Path(creds_file).read_text())
+        cfg = data.get("web") or data.get("installed") or {}
+        return cfg.get("client_id", ""), cfg.get("client_secret", "")
+    except Exception:
+        return "", ""
+
 def _get_google_client_config() -> dict:
+    client_id = GOOGLE_CLIENT_ID
+    client_secret = GOOGLE_CLIENT_SECRET
+    if not client_id or not client_secret:
+        client_id, client_secret = _load_google_credentials_from_file()
     return {
         "web": {
-            "client_id": GOOGLE_CLIENT_ID,
-            "client_secret": GOOGLE_CLIENT_SECRET,
+            "client_id": client_id,
+            "client_secret": client_secret,
             "auth_uri": "https://accounts.google.com/o/oauth2/auth",
             "token_uri": "https://oauth2.googleapis.com/token",
             "redirect_uris": ["http://localhost:3000/api/integrations/google/callback"],

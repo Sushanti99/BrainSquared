@@ -30,12 +30,7 @@ agents:
       - --verbose
       - --model
       - claude-sonnet-4-6
-    allowed_tools:
-      - Read
-      - Edit
-      - Bash
-      - Glob
-      - Grep
+    allowed_tools: []
 
   codex:
     command: codex

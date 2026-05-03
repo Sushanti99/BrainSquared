@@ -5,6 +5,9 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
+import subprocess
+import sys
 from pathlib import Path
 from typing import Iterable, Mapping
 
@@ -34,8 +37,53 @@ def _remote_server(
     return data
 
 
+# Path to the built-in Google MCP server script.
+_GOOGLE_MCP_SERVER = str(Path(__file__).parent / "mcp_google_server.py")
+
+
+def _find_python_with_mcp() -> str:
+    """Return the Python executable that has the mcp package installed."""
+    candidates = [
+        shutil.which("python3"),
+        shutil.which("python"),
+        sys.executable,
+    ]
+    for candidate in candidates:
+        if not candidate:
+            continue
+        try:
+            result = subprocess.run(
+                [candidate, "-c", "import mcp"],
+                capture_output=True, timeout=5,
+            )
+            if result.returncode == 0:
+                return candidate
+        except Exception:
+            continue
+    # Fallback — will fail at runtime with a clear error from the MCP server
+    return sys.executable
+
+
 # MCP server definitions per backend.
 _SERVERS: dict[str, dict[str, dict[str, object]]] = {
+    "google": {
+        "claude-code": _stdio_server(
+            _find_python_with_mcp(),
+            [_GOOGLE_MCP_SERVER],
+            {
+                "credentials_file": "GOOGLE_CREDENTIALS_FILE",
+                "token_file": "GOOGLE_TOKEN_FILE",
+            },
+        ),
+        "codex": _stdio_server(
+            _find_python_with_mcp(),
+            [_GOOGLE_MCP_SERVER],
+            {
+                "credentials_file": "GOOGLE_CREDENTIALS_FILE",
+                "token_file": "GOOGLE_TOKEN_FILE",
+            },
+        ),
+    },
     "github": {
         "claude-code": _stdio_server(
             "npx",
@@ -347,6 +395,15 @@ def sync_from_env(agent: str | None = None, environ: Mapping[str, str] | None = 
     for integration_id, credentials in mappings.items():
         if any(value for value in credentials.values()):
             add_server(integration_id, credentials, agents=agent)
+
+    # Google: activate if token.json exists (OAuth already done via UI)
+    token_file = env.get("GOOGLE_TOKEN_FILE", "")
+    credentials_file = env.get("GOOGLE_CREDENTIALS_FILE", "")
+    if token_file and Path(token_file).exists():
+        add_server("google", {
+            "credentials_file": credentials_file,
+            "token_file": token_file,
+        }, agents=agent)
 
 
 def supported_integrations() -> list[str]:
