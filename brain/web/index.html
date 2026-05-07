@@ -3043,19 +3043,35 @@
   }
 
   async function copyIntegrationLink(integration, btn) {
-    const link = integrationLink(integration);
-    try {
-      await navigator.clipboard.writeText(link);
-    } catch {
-      const scratch = document.createElement("textarea");
-      scratch.value = link;
-      scratch.setAttribute("readonly", "");
-      scratch.style.position = "fixed";
-      scratch.style.opacity = "0";
-      document.body.appendChild(scratch);
-      scratch.select();
-      document.execCommand("copy");
-      scratch.remove();
+    let link;
+    if (integration && integration.oauth) {
+      try {
+        const res = await fetch(`/api/integrations/${backendId(integration.id)}/auth-url`);
+        const data = await res.json();
+        link = data.url || integrationLink(integration);
+      } catch {
+        link = integrationLink(integration);
+      }
+    } else {
+      link = integrationLink(integration);
+    }
+
+    if (window.webkit?.messageHandlers?.clipboard) {
+      window.webkit.messageHandlers.clipboard.postMessage(link);
+    } else {
+      try {
+        await navigator.clipboard.writeText(link);
+      } catch {
+        const scratch = document.createElement("textarea");
+        scratch.value = link;
+        scratch.setAttribute("readonly", "");
+        scratch.style.position = "fixed";
+        scratch.style.opacity = "0";
+        document.body.appendChild(scratch);
+        scratch.select();
+        document.execCommand("copy");
+        scratch.remove();
+      }
     }
     if (btn) {
       const original = btn.textContent;

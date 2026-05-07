@@ -176,15 +176,28 @@ def register(app: "FastAPI", runtime: "AppRuntime") -> None:
 
     # ── Google OAuth ──────────────────────────────────────────────────────────
 
-    @app.get("/api/integrations/google/connect")
-    async def google_connect(request: Request):
+    def _google_build_auth(cfg: dict) -> tuple[str, str, object]:
+        """Return (auth_url, redirect_uri, flow) using the registered redirect URI."""
+        from google_auth_oauthlib.flow import Flow
+        state = secrets.token_urlsafe(16)
+        redirect_uri = cfg["web"]["redirect_uris"][0]
+        flow = Flow.from_client_config(cfg, scopes=GOOGLE_SCOPES, redirect_uri=redirect_uri)
+        auth_url, _ = flow.authorization_url(prompt="consent", access_type="offline", state=state)
+        _oauth_states[state] = (flow, redirect_uri)
+        return auth_url, state, flow
+
+    @app.get("/api/integrations/google/auth-url")
+    async def google_auth_url():
         try:
-            from google_auth_oauthlib.flow import Flow
-            state = secrets.token_urlsafe(16)
-            redirect_uri = str(request.base_url).rstrip("/") + "/api/integrations/google/callback"
-            flow = Flow.from_client_config(_get_google_client_config(), scopes=GOOGLE_SCOPES, redirect_uri=redirect_uri)
-            auth_url, _ = flow.authorization_url(prompt="consent", access_type="offline", state=state)
-            _oauth_states[state] = (flow, redirect_uri)
+            auth_url, _, _ = _google_build_auth(_get_google_client_config())
+            return JSONResponse({"url": auth_url})
+        except Exception as exc:
+            return JSONResponse({"error": str(exc)}, status_code=500)
+
+    @app.get("/api/integrations/google/connect")
+    async def google_connect():
+        try:
+            auth_url, _, _ = _google_build_auth(_get_google_client_config())
             return RedirectResponse(auth_url)
         except Exception as exc:
             return HTMLResponse(_error_page(str(exc)))

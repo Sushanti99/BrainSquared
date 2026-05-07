@@ -26,6 +26,7 @@ struct BrainWebView: NSViewRepresentable {
         let config = WKWebViewConfiguration()
         config.preferences.setValue(true, forKey: "developerExtrasEnabled")
         config.userContentController.add(context.coordinator, name: "agentKeys")
+        config.userContentController.add(context.coordinator, name: "clipboard")
         // Allow WebSocket connections to localhost
         config.limitsNavigationsToAppBoundDomains = false
         let webView = WKWebView(frame: .zero, configuration: config)
@@ -53,6 +54,11 @@ struct BrainWebView: NSViewRepresentable {
         }
 
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+            if message.name == "clipboard", let text = message.body as? String {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(text, forType: .string)
+                return
+            }
             guard message.name == "agentKeys", let body = message.body as? [String: Any] else { return }
             if let key = body["anthropic_api_key"] as? String, !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 KeychainHelper.save(key: "anthropic_api_key", value: key.trimmingCharacters(in: .whitespacesAndNewlines))

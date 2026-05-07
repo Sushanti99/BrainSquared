@@ -10,10 +10,12 @@ enum KeychainHelper {
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: service,
             kSecAttrAccount: key,
+            kSecUseDataProtectionKeychain: true,
         ]
         SecItemDelete(query as CFDictionary)
         var attrs = query
         attrs[kSecValueData] = data
+        attrs[kSecAttrAccessible] = kSecAttrAccessibleWhenUnlocked
         SecItemAdd(attrs as CFDictionary, nil)
     }
 
@@ -24,6 +26,7 @@ enum KeychainHelper {
             kSecAttrAccount: key,
             kSecReturnData: true,
             kSecMatchLimit: kSecMatchLimitOne,
+            kSecUseDataProtectionKeychain: true,
         ]
         var result: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
@@ -36,6 +39,7 @@ enum KeychainHelper {
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: service,
             kSecAttrAccount: key,
+            kSecUseDataProtectionKeychain: true,
         ]
         SecItemDelete(query as CFDictionary)
     }
