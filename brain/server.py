@@ -17,6 +17,16 @@ from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 
 import re
 
+
+def _plain_task_text(text: str) -> str:
+    """Strip markdown formatting and task prefix to get comparable plain text."""
+    t = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)   # [label](url) → label
+    t = re.sub(r'`([^`]+)`', r'\1', t)                   # `code` → code
+    t = re.sub(r'\*([^*]+)\*', r'\1', t)                 # *em* → em
+    t = re.sub(r'^-\s+\[[x ]\]\s+', '', t.strip())       # strip task prefix
+    return ' '.join(t.split())                            # normalise whitespace
+
+
 from brain.agents import available_agents
 from brain import integrations_api, mcp_config
 from brain.agent_backends import get_backend
@@ -161,8 +171,9 @@ def create_app(runtime: AppRuntime) -> FastAPI:
             return JSONResponse({"status": "error", "message": "No daily note for today"}, status_code=404)
         raw = today_path.read_text(encoding="utf-8")
         lines = raw.splitlines()
+        search = _plain_task_text(text)
         for i, line in enumerate(lines):
-            if text in line and ("- [ ]" in line or "- [x]" in line):
+            if ("- [ ]" in line or "- [x]" in line) and _plain_task_text(line) == search:
                 lines[i] = line.replace("- [ ]", "- [x]") if checked else line.replace("- [x]", "- [ ]")
                 break
         today_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -384,6 +395,7 @@ async def _run_backend_stream(runtime: AppRuntime, websocket: WebSocket, user_me
             vault_paths,
             inject_canonical_prompt=False,
             live_integration_context=live_context,
+            env_cfg=runtime.env_cfg,
         )
         if agent_name == "claude-code"
         else build_codex_prompt(runtime.app_cfg, session, clean_message, vault_paths, live_integration_context=live_context)

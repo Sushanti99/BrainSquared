@@ -49,7 +49,7 @@ def _get_credentials():
 # ── Gmail tools ───────────────────────────────────────────────────────────────
 
 @mcp.tool()
-def list_emails(days: int = 1, max_results: int = 20, query: str = "") -> str:
+def list_emails(days: int = 1, max_results: int = 50, query: str = "") -> str:
     """List recent emails. days=how far back, query=Gmail search string (e.g. 'from:foo@bar.com')."""
     from googleapiclient.discovery import build
 
@@ -127,9 +127,16 @@ def get_email(message_id: str) -> str:
 
 
 @mcp.tool()
-def search_emails(query: str, max_results: int = 10) -> str:
-    """Search emails using Gmail search syntax (e.g. 'from:sushantii.kerani subject:meeting')."""
+def search_emails(query: str = "", from_sender: str = "", max_results: int = 50) -> str:
+    """Search Gmail. Use query for Gmail syntax (e.g. 'subject:meeting is:unread').
+    Use from_sender as a shortcut for 'from:email@domain.com'.
+    Both can be combined: from_sender='boss@co.com' query='subject:invoice'."""
     from googleapiclient.discovery import build
+
+    if from_sender:
+        query = f"from:{from_sender} {query}".strip()
+    if not query:
+        return "Provide a query or from_sender to search."
 
     creds = _get_credentials()
     service = build("gmail", "v1", credentials=creds)

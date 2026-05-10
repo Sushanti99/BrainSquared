@@ -2,8 +2,18 @@
 
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from pathlib import Path
+
+
+def _plain_task_text(text: str) -> str:
+    """Strip markdown formatting and task prefix to get comparable plain text."""
+    t = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)
+    t = re.sub(r'`([^`]+)`', r'\1', t)
+    t = re.sub(r'\*([^*]+)\*', r'\1', t)
+    t = re.sub(r'^-\s+\[[x ]\]\s+', '', t.strip())
+    return ' '.join(t.split())
 
 from brain.models import AppConfig, DailyContext, EnvConfig
 from brain.vault import resolve_vault_paths, write_text_file
@@ -21,9 +31,113 @@ def generate_daily_note(
     force: bool = False,
     enabled_integrations: set[str] | None = None,
 ) -> Path:
+    checked = _collect_checked_tasks(app_cfg)
+    custom = _extract_custom_sections(app_cfg)
     context = build_daily_context(app_cfg, env_cfg, enabled_integrations=enabled_integrations)
     content = render_daily_note(context, enabled_integrations=enabled_integrations)
+    if checked:
+        content = _reapply_checked(content, checked)
+    if custom:
+        # Insert custom sections before the trailing --- footer
+        footer_marker = "\n\n---"
+        if footer_marker in content:
+            content = content.replace(footer_marker, f"\n\n{custom}{footer_marker}", 1)
+        else:
+            content += f"\n\n{custom}"
     return write_daily_note(app_cfg, content, force=force)
+
+
+# Headers that regenerate always re-renders from integrations — everything else is custom
+_GENERATED_HEADERS = {
+    "## Open Obsidian Tasks",
+    "## Calendar — Today's Events",
+    "## Email — Action Items",
+    "## Notion Tasks",
+    "## GitHub",
+    "## Slack",
+    "## Carried Forward",
+    "## Reading — Today's Links",
+}
+
+
+def _extract_custom_sections(app_cfg: AppConfig) -> str:
+    """Return any manually-added sections from today's note so regenerate preserves them."""
+    vault_paths = resolve_vault_paths(app_cfg)
+    daily_path = vault_paths.daily / f"{_today()}.md"
+    if not daily_path.exists():
+        return ""
+
+    lines = daily_path.read_text(encoding="utf-8").splitlines()
+    custom_blocks: list[list[str]] = []
+    current: list[str] = []
+    in_custom = False
+    in_frontmatter = False
+    frontmatter_done = False
+
+    for line in lines:
+        # Skip YAML frontmatter
+        if not frontmatter_done:
+            if line.strip() == "---":
+                if not in_frontmatter:
+                    in_frontmatter = True
+                    continue
+                else:
+                    in_frontmatter = False
+                    frontmatter_done = True
+                    continue
+            if in_frontmatter:
+                continue
+
+        if line.startswith("## "):
+            if in_custom and current:
+                custom_blocks.append(current)
+            in_custom = line.strip() not in _GENERATED_HEADERS
+            current = [line] if in_custom else []
+        elif line.startswith("# ") or (line.strip() == "---"):
+            if in_custom and current:
+                custom_blocks.append(current)
+            in_custom = False
+            current = []
+        elif in_custom:
+            current.append(line)
+
+    if in_custom and current:
+        custom_blocks.append(current)
+
+    if not custom_blocks:
+        return ""
+
+    parts = []
+    for block in custom_blocks:
+        # Drop trailing blank lines from each block
+        while block and not block[-1].strip():
+            block.pop()
+        if block:
+            parts.append("\n".join(block))
+
+    return "\n\n".join(parts)
+
+
+def _collect_checked_tasks(app_cfg: AppConfig) -> set[str]:
+    """Return normalised plain-text of tasks already ticked in today's note."""
+    vault_paths = resolve_vault_paths(app_cfg)
+    daily_path = vault_paths.daily / f"{_today()}.md"
+    if not daily_path.exists():
+        return set()
+    checked: set[str] = set()
+    for line in daily_path.read_text(encoding="utf-8").splitlines():
+        if "- [x] " in line:
+            checked.add(_plain_task_text(line))
+    return checked
+
+
+def _reapply_checked(content: str, checked: set[str]) -> str:
+    """Re-tick tasks in regenerated content that were checked in the old note."""
+    lines = content.splitlines()
+    for i, line in enumerate(lines):
+        if "- [ ] " in line and _plain_task_text(line) in checked:
+            lines[i] = line.replace("- [ ] ", "- [x] ", 1)
+    return "\n".join(lines)
 
 
 def render_daily_note(bundle: DailyContext, enabled_integrations: set[str] | None = None) -> str:

@@ -203,6 +203,10 @@ def register(app: "FastAPI", runtime: "AppRuntime") -> None:
             token_file = runtime.env_cfg.google_token_file
             token_file.write_text(flow.credentials.to_json())
             _update_env("GOOGLE_TOKEN_FILE", str(token_file))
+            mcp_config.add_server("google", {
+                "token_file": str(token_file),
+                "credentials_file": str(runtime.env_cfg.google_credentials_file),
+            })
         except Exception as exc:
             return HTMLResponse(_error_page(str(exc)))
         _trigger_ingest("gmail")

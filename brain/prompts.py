@@ -3,9 +3,77 @@
 from __future__ import annotations
 
 from datetime import date
-
-from brain.models import AppConfig, DailyContext, SessionState, VaultPaths
+from brain.models import AppConfig, DailyContext, EnvConfig, SessionState, VaultPaths
 from brain.vault import list_core_notes, read_daily_note
+
+
+def _build_tools_section(env_cfg: EnvConfig | None) -> str:
+    """Describe all MCP tools available to the agent based on connected integrations."""
+    import os as _os
+
+    lines = [
+        "## Available Tools",
+        "You have access to the following tools. Use them proactively — do not answer from memory alone when real data is available.",
+        "",
+        "**Vault / Obsidian** (always connected):",
+        "- Read, create, and edit markdown notes in the user's vault using standard file tools.",
+        "- When asked to create a note, write it to the correct vault folder. When asked about notes or tasks, read the relevant files first.",
+        "- Daily notes live in the daily folder; core notes in the system folder; thoughts in the thoughts folder.",
+        "",
+    ]
+
+    if env_cfg and env_cfg.google_token_file.exists():
+        lines += [
+            "**Gmail & Calendar** (Google connected) — call these when the user asks about emails or calendar:",
+            "- `search_emails(query, from_sender, max_results)` — search Gmail. Use Gmail query syntax: `from:boss@co.com`, `subject:invoice`, `is:unread`, `after:2024/01/01`. Use `from_sender='email@domain.com'` as a shortcut for sender search.",
+            "- `list_emails(days, max_results, query)` — list recent emails from the last N days.",
+            "- `get_email(message_id)` — fetch full body of a specific email by ID.",
+            "- `get_events(days_back, days_forward, timezone_name)` — fetch calendar events in a date range.",
+            "- `get_todays_events(timezone_name)` — today's calendar events only.",
+            "",
+        ]
+
+    has_github = bool(_os.environ.get("GITHUB_PERSONAL_ACCESS_TOKEN") or _os.environ.get("GITHUB_TOKEN"))
+    if has_github:
+        lines += [
+            "**GitHub** (connected) — call these when the user asks about code, PRs, issues, or repos:",
+            "- `list_issues(owner, repo, state)` — list issues for a repo.",
+            "- `get_issue(owner, repo, issue_number)` — get details of a specific issue.",
+            "- `list_pull_requests(owner, repo, state)` — list pull requests.",
+            "- `get_pull_request(owner, repo, pull_number)` — get PR details and diff.",
+            "- `list_notifications()` — get unread GitHub notifications.",
+            "- `search_repositories(query)` — search GitHub repos.",
+            "",
+        ]
+
+    has_notion = bool(_os.environ.get("NOTION_API_KEY"))
+    if has_notion:
+        lines += [
+            "**Notion** (connected) — call these when the user asks about Notion pages, tasks, or databases:",
+            "- Search and retrieve Notion pages and database entries using the available Notion MCP tools.",
+            "- When the user asks to find or update a Notion page, use the MCP tools rather than guessing.",
+            "",
+        ]
+
+    has_slack = bool(_os.environ.get("SLACK_BOT_TOKEN"))
+    if has_slack:
+        lines += [
+            "**Slack** (connected) — call these when the user asks about Slack messages or channels:",
+            "- List channels, read channel history, and search messages using the available Slack MCP tools.",
+            "- When the user asks about a conversation or message in Slack, fetch it via MCP.",
+            "",
+        ]
+
+    has_linear = bool(_os.environ.get("LINEAR_API_KEY"))
+    if has_linear:
+        lines += [
+            "**Linear** (connected) — call these when the user asks about tickets, sprints, or engineering tasks:",
+            "- Use the Linear MCP tools to list, search, and read issues and projects.",
+            "- When the user mentions a ticket, sprint, or Linear issue, fetch it via MCP rather than guessing.",
+            "",
+        ]
+
+    return "\n".join(lines)
 
 
 def _format_history_turn(turn) -> str:
@@ -31,6 +99,7 @@ def build_chat_prompt(
     *,
     inject_canonical_prompt: bool,
     live_integration_context: str | None = None,
+    env_cfg: EnvConfig | None = None,
 ) -> str:
     today = date.today().isoformat()
     daily_content = read_daily_note(vault_paths, today)
@@ -43,6 +112,8 @@ def build_chat_prompt(
         if canonical_prompt:
             sections.append("## Operating Instructions")
             sections.append(canonical_prompt)
+
+    sections.append(_build_tools_section(env_cfg))
 
     sections.append("## Current Date")
     sections.append(today)
