@@ -12,6 +12,7 @@ from fastapi import Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
 from brain import ingest, mcp_config
+from brain.models import DEFAULT_SERVER_PORT
 
 if TYPE_CHECKING:
     from fastapi import FastAPI
@@ -51,7 +52,7 @@ def _get_google_client_config() -> dict:
             "client_secret": client_secret,
             "auth_uri": "https://accounts.google.com/o/oauth2/auth",
             "token_uri": "https://oauth2.googleapis.com/token",
-            "redirect_uris": ["http://localhost:3000/api/integrations/google/callback"],
+            "redirect_uris": [f"http://localhost:{DEFAULT_SERVER_PORT}/api/integrations/google/callback"],
         }
     }
 

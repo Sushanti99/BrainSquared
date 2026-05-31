@@ -12,12 +12,13 @@ AgentName = Literal["claude-code", "codex"]
 SessionLifecycleState = Literal["idle", "connected", "running", "summarizing", "closed"]
 BackendEventType = Literal["status", "chunk", "done", "error", "todos", "tool_use"]
 TurnRole = Literal["user", "assistant"]
+DEFAULT_SERVER_PORT = 47821
 
 
 @dataclass(slots=True)
 class ServerConfig:
     host: str = "127.0.0.1"
-    port: int = 3000
+    port: int = DEFAULT_SERVER_PORT
     auto_open_browser: bool = True
 
 

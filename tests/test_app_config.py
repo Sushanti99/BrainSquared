@@ -2,7 +2,12 @@ from pathlib import Path
 
 import yaml
 
-from brain.app_config import load_app_config, write_default_app_config
+from brain.app_config import default_app_config, load_app_config, write_default_app_config
+from brain.models import DEFAULT_SERVER_PORT
+
+
+def test_default_app_config_uses_high_server_port(tmp_path):
+    assert default_app_config(tmp_path / "vault").server.port == DEFAULT_SERVER_PORT
 
 
 def test_load_app_config_from_vault_system_path(tmp_path):
@@ -15,6 +20,7 @@ def test_load_app_config_from_vault_system_path(tmp_path):
     assert app_cfg.agent == "codex"
     assert app_cfg.vault.path == vault_path.resolve()
     assert app_cfg.config_path == config_path.resolve()
+    assert app_cfg.server.port == DEFAULT_SERVER_PORT
 
 
 def test_load_app_config_applies_overrides(tmp_path):

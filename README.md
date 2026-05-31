@@ -70,7 +70,7 @@ brain seed --vault ~/my-vault \
 brain start --vault ~/my-vault
 ```
 
-Opens `http://localhost:3000` in your browser.
+Opens `http://localhost:47821` in your browser. Use `--port N` to override the default.
 
 **4. Connect your tools**
 

@@ -12,6 +12,7 @@ from brain.agents import SUPPORTED_AGENTS
 from brain.models import (
     AgentCommandConfig,
     AppConfig,
+    DEFAULT_SERVER_PORT,
     IntegrationsConfig,
     ServerConfig,
     SessionConfig,
@@ -25,7 +26,7 @@ def _build_default_config(vault_path: Path, agent: str = "claude-code") -> dict[
         "agent": agent,
         "server": {
             "host": "127.0.0.1",
-            "port": 3000,
+            "port": DEFAULT_SERVER_PORT,
             "auto_open_browser": True,
         },
         "vault": {
@@ -158,7 +159,7 @@ def _parse_app_config(data: dict[str, Any], config_path: Path | None) -> AppConf
         agent=data.get("agent", "claude-code"),
         server=ServerConfig(
             host=server_data.get("host", "127.0.0.1"),
-            port=int(server_data.get("port", 3000)),
+            port=int(server_data.get("port", DEFAULT_SERVER_PORT)),
             auto_open_browser=bool(server_data.get("auto_open_browser", True)),
         ),
         vault=VaultConfig(
