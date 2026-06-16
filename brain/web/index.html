@@ -297,6 +297,23 @@
     }
     .agent-key-status.ok { color: #2f7d4a; }
     .agent-key-status.err { color: #a83b28; }
+    .key-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 1px 7px;
+      border-radius: 99px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+    .key-badge.set { background: #d4edda; color: #2f7d4a; }
+    .key-badge.unset { background: #f5e6d0; color: #8c5a2a; }
+    .key-hint {
+      font-size: 11px;
+      color: var(--ink-muted);
+      font-family: 'JetBrains Mono', monospace;
+      min-height: 14px;
+    }
     .agent-modal-actions {
       display: flex;
       align-items: center;
@@ -1717,12 +1734,14 @@
       <div class="agent-modal-meta" id="agentModalMeta"></div>
       <form class="agent-key-form" id="agentKeyForm">
         <div class="agent-key-row">
-          <label for="anthropicKeyInput">Anthropic API key</label>
+          <label for="anthropicKeyInput">Anthropic API key <span class="key-badge" id="anthropicKeyBadge"></span></label>
           <input id="anthropicKeyInput" type="password" autocomplete="off" spellcheck="false" placeholder="sk-ant-...">
+          <div class="key-hint" id="anthropicKeyHint"></div>
         </div>
         <div class="agent-key-row">
-          <label for="openaiKeyInput">OpenAI API key</label>
+          <label for="openaiKeyInput">OpenAI API key <span class="key-badge" id="openaiKeyBadge"></span></label>
           <input id="openaiKeyInput" type="password" autocomplete="off" spellcheck="false" placeholder="sk-...">
+          <div class="key-hint" id="openaiKeyHint"></div>
         </div>
         <div class="agent-key-status" id="agentKeyStatus"></div>
       </form>
@@ -1817,7 +1836,11 @@
   const agentModalRefresh = document.getElementById("agentModalRefresh");
   const agentKeyForm = document.getElementById("agentKeyForm");
   const anthropicKeyInput = document.getElementById("anthropicKeyInput");
+  const anthropicKeyBadge = document.getElementById("anthropicKeyBadge");
+  const anthropicKeyHint = document.getElementById("anthropicKeyHint");
   const openaiKeyInput = document.getElementById("openaiKeyInput");
+  const openaiKeyBadge = document.getElementById("openaiKeyBadge");
+  const openaiKeyHint = document.getElementById("openaiKeyHint");
   const agentKeyStatus = document.getElementById("agentKeyStatus");
   const agentKeySave = document.getElementById("agentKeySave");
   let currentAgent = "unknown";
@@ -2063,6 +2086,7 @@
       const payload = await response.json();
       availableAgents = Array.isArray(payload.available_agents) ? payload.available_agents : availableAgents;
       currentAgent = payload.active_agent || payload.agent || currentAgent;
+      if (payload.api_keys) window._apiKeyStatus = payload.api_keys;
       renderAgentOptions(currentAgent);
       syncAgentSwitcherState();
     } catch {}
@@ -2074,7 +2098,9 @@
     const installHint = installCommand(agentId);
     const authHint = authCommand(agentId);
     const command = option?.command || (agentId === "codex" ? "codex" : "claude");
-    const error = option?.error ? `Status: ${option.error}` : "Status: runtime not detected on PATH";
+    const statusLine = option?.installed
+      ? `Status: ${option.version || "installed"}`
+      : option?.error ? `Status: ${option.error}` : "Status: not found on PATH";
     agentModalEyebrow.textContent = option?.installed ? "Agent Ready" : "Agent Setup";
     agentModalTitle.textContent = option?.installed ? `${label} is installed` : `${label} is not installed yet`;
     agentModalBody.textContent = option?.installed
@@ -2084,13 +2110,41 @@
       `Runtime command: ${command}`,
       `Install: ${installHint}`,
       `Authenticate: ${authHint}`,
-      error,
+      statusLine,
     ].join("\n");
     showAgentKeyStatus("");
     anthropicKeyInput.value = "";
     openaiKeyInput.value = "";
+    // populate key badges from last-fetched status
+    _renderKeyBadges();
     agentModal.classList.add("open");
     agentModal.setAttribute("aria-hidden", "false");
+  }
+
+  function _renderKeyBadges() {
+    const keys = window._apiKeyStatus || {};
+    if (keys.anthropic_set) {
+      anthropicKeyBadge.textContent = "✓ configured";
+      anthropicKeyBadge.className = "key-badge set";
+      anthropicKeyHint.textContent = keys.anthropic_preview || "";
+      anthropicKeyInput.placeholder = "Leave blank to keep existing key";
+    } else {
+      anthropicKeyBadge.textContent = "not set";
+      anthropicKeyBadge.className = "key-badge unset";
+      anthropicKeyHint.textContent = "";
+      anthropicKeyInput.placeholder = "sk-ant-...";
+    }
+    if (keys.openai_set) {
+      openaiKeyBadge.textContent = "✓ configured";
+      openaiKeyBadge.className = "key-badge set";
+      openaiKeyHint.textContent = keys.openai_preview || "";
+      openaiKeyInput.placeholder = "Leave blank to keep existing key";
+    } else {
+      openaiKeyBadge.textContent = "not set";
+      openaiKeyBadge.className = "key-badge unset";
+      openaiKeyHint.textContent = "";
+      openaiKeyInput.placeholder = "sk-...";
+    }
   }
 
   function closeAgentModal() {

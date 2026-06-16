@@ -28,6 +28,22 @@ def _plain_task_text(text: str) -> str:
     return ' '.join(t.split())                            # normalise whitespace
 
 
+def _api_key_status() -> dict[str, str | bool | None]:
+    def _masked(key: str) -> str | None:
+        if not key:
+            return None
+        return key[:10] + "••••" + key[-4:] if len(key) > 14 else key[:4] + "••••"
+
+    anthropic = os.getenv("ANTHROPIC_API_KEY", "")
+    openai = os.getenv("OPENAI_API_KEY", "")
+    return {
+        "anthropic_set": bool(anthropic),
+        "anthropic_preview": _masked(anthropic),
+        "openai_set": bool(openai),
+        "openai_preview": _masked(openai),
+    }
+
+
 from brain.agents import available_agents
 from brain import integrations_api, mcp_config
 from brain.agent_backends import get_backend
@@ -141,6 +157,7 @@ def create_app(runtime: AppRuntime) -> FastAPI:
                     "system": runtime.app_cfg.vault.system_folder,
                 },
                 "integrations": integration_status(runtime.env_cfg),
+                "api_keys": _api_key_status(),
                 "session": {
                     "session_id": session.session_id if session else None,
                     "state": session.lifecycle_state if session else "idle",
