@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 from datetime import date
 
+from starlette.websockets import WebSocketState
+
 from brain.models import AgentName, SessionState, Turn
 from brain.utils import utc_now
 
@@ -39,7 +41,9 @@ class SessionManager:
     async def attach_websocket(self, websocket) -> SessionState:
         async with self._lock:
             if self._websocket is not None:
-                raise RuntimeError("An active browser session is already connected.")
+                if self._websocket.client_state != WebSocketState.DISCONNECTED:
+                    raise RuntimeError("An active browser session is already connected.")
+                self._websocket = None
             self._websocket = websocket
             session = self.get_or_create_session()
             session.websocket_connected = True
