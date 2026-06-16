@@ -12,7 +12,7 @@ AgentName = Literal["claude-code", "codex"]
 SessionLifecycleState = Literal["idle", "connected", "running", "summarizing", "closed"]
 BackendEventType = Literal["status", "chunk", "done", "error", "todos", "tool_use"]
 TurnRole = Literal["user", "assistant"]
-DEFAULT_SERVER_PORT = 47821
+DEFAULT_SERVER_PORT = 6683
 
 
 @dataclass(slots=True)

@@ -2,7 +2,7 @@ agent: claude-code
 
 server:
   host: 127.0.0.1
-  port: 47821
+  port: 6683
   auto_open_browser: true
 
 vault:
