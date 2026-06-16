@@ -2149,35 +2149,17 @@
   }
 
   function _syncSetupState() {
-    const keys = window._apiKeyStatus || {};
     const agent = availableAgents.find(a => a.id === currentAgent);
     const agentInstalled = agent?.installed ?? true;
 
-    // Determine what's missing
-    const needsAnthropicKey = currentAgent === "claude-code" && !keys.anthropic_set;
-    const needsOpenAIKey = currentAgent === "codex" && !keys.openai_set;
-    const needsKey = needsAnthropicKey || needsOpenAIKey;
-    const needsInstall = !agentInstalled;
-    const needsAction = needsKey || needsInstall;
+    // Only warn when the CLI binary itself is missing — Claude Code and Codex
+    // manage their own auth, so absence of ANTHROPIC_API_KEY is not a blocker.
+    agentHelpBtn.classList.toggle("needs-setup", !agentInstalled);
 
-    // Badge on ? button
-    agentHelpBtn.classList.toggle("needs-setup", needsAction);
-
-    // Banner
-    if (needsInstall) {
+    if (!agentInstalled) {
       setupBannerTitle.textContent = `${agent?.label || "Agent"} is not installed`;
-      setupBannerText.textContent = `brain² can't run without the agent CLI. Click below to see setup instructions.`;
+      setupBannerText.textContent = `brain² needs the ${agent?.command || "agent"} CLI installed and authenticated to work. Click below for setup instructions.`;
       setupBannerBtn.textContent = "See setup →";
-      setupBanner.style.display = "flex";
-    } else if (needsAnthropicKey) {
-      setupBannerTitle.textContent = "Anthropic API key not configured";
-      setupBannerText.textContent = "Claude Code needs an Anthropic API key to work. Add it now — takes 10 seconds.";
-      setupBannerBtn.textContent = "Add API key →";
-      setupBanner.style.display = "flex";
-    } else if (needsOpenAIKey) {
-      setupBannerTitle.textContent = "OpenAI API key not configured";
-      setupBannerText.textContent = "Codex needs an OpenAI API key to work. Add it now — takes 10 seconds.";
-      setupBannerBtn.textContent = "Add API key →";
       setupBanner.style.display = "flex";
     } else {
       setupBanner.style.display = "none";
