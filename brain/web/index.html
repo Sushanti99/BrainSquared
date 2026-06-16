@@ -211,6 +211,49 @@
       color: var(--ink);
       border-color: var(--ink-muted);
     }
+    .agent-help.needs-setup {
+      border-color: #c97b2a;
+      color: #c97b2a;
+    }
+    .agent-help.needs-setup::after {
+      content: '';
+      position: absolute;
+      top: -3px;
+      right: -3px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #c97b2a;
+    }
+    .agent-help { position: relative; }
+    .setup-banner {
+      margin: 24px auto 0;
+      max-width: 420px;
+      background: #fdf3e3;
+      border: 1px solid #e8c882;
+      border-radius: 14px;
+      padding: 14px 18px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .setup-banner-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+    .setup-banner-body { flex: 1; }
+    .setup-banner-title { font-weight: 700; font-size: 13px; color: #7a4a10; margin-bottom: 4px; }
+    .setup-banner-text { font-size: 12px; color: #8a6030; line-height: 1.5; }
+    .setup-banner-btn {
+      margin-top: 10px;
+      background: #c97b2a;
+      color: #fff;
+      border: none;
+      border-radius: 99px;
+      padding: 6px 14px;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .setup-banner-btn:hover { background: #a05e18; }
     .agent-modal {
       position: fixed;
       inset: 0;
@@ -1706,6 +1749,14 @@
       <div class="todo-sidebar" id="todoSidebar">
         <div class="todo-sidebar-label">active plan</div>
       </div>
+      <div id="setupBanner" class="setup-banner" style="display:none">
+        <div class="setup-banner-icon">⚠️</div>
+        <div class="setup-banner-body">
+          <div class="setup-banner-title" id="setupBannerTitle">API key not configured</div>
+          <div class="setup-banner-text" id="setupBannerText">brain² needs an Anthropic API key to run Claude Code. Add it now to start chatting.</div>
+          <button class="setup-banner-btn" id="setupBannerBtn">Add API key →</button>
+        </div>
+      </div>
       <div class="chat-messages" id="messages"></div>
 
       <div class="composer-wrap">
@@ -1827,6 +1878,10 @@
   const sessionEl = document.getElementById("session");
   const agentSelect = document.getElementById("agentSelect");
   const agentHelpBtn = document.getElementById("agentHelpBtn");
+  const setupBanner = document.getElementById("setupBanner");
+  const setupBannerTitle = document.getElementById("setupBannerTitle");
+  const setupBannerText = document.getElementById("setupBannerText");
+  const setupBannerBtn = document.getElementById("setupBannerBtn");
   const agentModal = document.getElementById("agentModal");
   const agentModalEyebrow = document.getElementById("agentModalEyebrow");
   const agentModalTitle = document.getElementById("agentModalTitle");
@@ -2089,7 +2144,44 @@
       if (payload.api_keys) window._apiKeyStatus = payload.api_keys;
       renderAgentOptions(currentAgent);
       syncAgentSwitcherState();
+      _syncSetupState();
     } catch {}
+  }
+
+  function _syncSetupState() {
+    const keys = window._apiKeyStatus || {};
+    const agent = availableAgents.find(a => a.id === currentAgent);
+    const agentInstalled = agent?.installed ?? true;
+
+    // Determine what's missing
+    const needsAnthropicKey = currentAgent === "claude-code" && !keys.anthropic_set;
+    const needsOpenAIKey = currentAgent === "codex" && !keys.openai_set;
+    const needsKey = needsAnthropicKey || needsOpenAIKey;
+    const needsInstall = !agentInstalled;
+    const needsAction = needsKey || needsInstall;
+
+    // Badge on ? button
+    agentHelpBtn.classList.toggle("needs-setup", needsAction);
+
+    // Banner
+    if (needsInstall) {
+      setupBannerTitle.textContent = `${agent?.label || "Agent"} is not installed`;
+      setupBannerText.textContent = `brain² can't run without the agent CLI. Click below to see setup instructions.`;
+      setupBannerBtn.textContent = "See setup →";
+      setupBanner.style.display = "flex";
+    } else if (needsAnthropicKey) {
+      setupBannerTitle.textContent = "Anthropic API key not configured";
+      setupBannerText.textContent = "Claude Code needs an Anthropic API key to work. Add it now — takes 10 seconds.";
+      setupBannerBtn.textContent = "Add API key →";
+      setupBanner.style.display = "flex";
+    } else if (needsOpenAIKey) {
+      setupBannerTitle.textContent = "OpenAI API key not configured";
+      setupBannerText.textContent = "Codex needs an OpenAI API key to work. Add it now — takes 10 seconds.";
+      setupBannerBtn.textContent = "Add API key →";
+      setupBanner.style.display = "flex";
+    } else {
+      setupBanner.style.display = "none";
+    }
   }
 
   function openAgentModal(agentId) {
@@ -2545,6 +2637,10 @@
     openAgentModal((missing || findAgentOption(currentAgent) || availableAgents[0] || { id: "claude-code" }).id);
   });
 
+  setupBannerBtn.addEventListener("click", () => {
+    openAgentModal(currentAgent || "claude-code");
+  });
+
   agentKeySave.addEventListener("click", async () => {
     const anthropicKey = anthropicKeyInput.value.trim();
     const openaiKey = openaiKeyInput.value.trim();
@@ -2576,6 +2672,7 @@
       anthropicKeyInput.value = "";
       openaiKeyInput.value = "";
       showAgentKeyStatus("API keys saved.", "ok");
+      await refreshAgentAvailability();
     } catch (error) {
       showAgentKeyStatus(error.message || "Could not save API keys.", "err");
     } finally {
