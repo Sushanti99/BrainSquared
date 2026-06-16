@@ -10,12 +10,30 @@ from dotenv import load_dotenv
 from brain.models import EnvConfig
 
 
+def user_app_support_dir() -> Path:
+    """Per-user data dir for the Mac app.
+
+    BRAIN_USER_ID (set by the Mac app from the signed-in Supabase user) namespaces
+    integration tokens per-user so signing in as a different account on the same
+    Mac doesn't surface the previous user's connections. Falls back to the shared
+    dir when running from CLI or in dev where no user ID is set.
+    """
+    base = Path.home() / "Library" / "Application Support" / "BrainSquared"
+    user_id = os.getenv("BRAIN_USER_ID", "").strip()
+    target = base / "users" / user_id if user_id else base
+    target.mkdir(parents=True, exist_ok=True)
+    return target
+
+
 def _find_dotenv() -> Path | None:
-    """Search project root (brain package location) then CWD and parents for a .env file."""
+    """Search project root, then per-user App Support, then CWD upward for a .env file."""
     project_root = Path(__file__).resolve().parent.parent
     candidate = project_root / ".env"
     if candidate.exists():
         return candidate
+    user_env = user_app_support_dir() / ".env"
+    if user_env.exists():
+        return user_env
     here = Path.cwd()
     for directory in [here, *here.parents]:
         candidate = directory / ".env"
@@ -32,7 +50,7 @@ def load_env_config(env_file: str | Path | None = None) -> EnvConfig:
         dotenv_path = Path(env_file)
         load_dotenv(dotenv_path)
 
-    base = dotenv_path.parent if dotenv_path else Path.cwd()
+    base = dotenv_path.parent if dotenv_path else user_app_support_dir()
 
     def _resolve(value: str) -> Path:
         p = Path(value).expanduser()

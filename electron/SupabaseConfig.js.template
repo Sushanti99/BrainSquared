@@ -1,0 +1,8 @@
+// Copy this to SupabaseConfig.js and fill in your project values.
+// SupabaseConfig.js is gitignored.
+
+module.exports = {
+  url: 'https://YOUR-PROJECT-REF.supabase.co',
+  anonKey: 'YOUR-ANON-PUBLIC-KEY',
+  oauthRedirectUrl: 'brainsquared://auth-callback',
+};

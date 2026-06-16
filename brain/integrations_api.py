@@ -42,10 +42,28 @@ def _load_google_credentials_from_file() -> tuple[str, str]:
         return "", ""
 
 def _get_google_client_config() -> dict:
+    import json as _json, sys as _sys
     client_id = GOOGLE_CLIENT_ID
     client_secret = GOOGLE_CLIENT_SECRET
     if not client_id or not client_secret:
         client_id, client_secret = _load_google_credentials_from_file()
+    if not client_id or not client_secret:
+        # Look for credentials.json bundled alongside the executable (PyInstaller or source tree)
+        candidates = [
+            Path(getattr(_sys, "_MEIPASS", "")) / "credentials.json",
+            Path(__file__).parent.parent / "credentials.json",
+        ]
+        for p in candidates:
+            if p.exists():
+                try:
+                    data = _json.loads(p.read_text())
+                    cfg = data.get("web") or data.get("installed") or {}
+                    client_id = cfg.get("client_id", "")
+                    client_secret = cfg.get("client_secret", "")
+                    if client_id:
+                        break
+                except Exception:
+                    pass
     return {
         "web": {
             "client_id": client_id,
@@ -76,7 +94,7 @@ NOTION_CLIENT_SECRET = os.getenv("NOTION_CLIENT_SECRET", "")
 # ── shared state ──────────────────────────────────────────────────────────────
 
 _oauth_states: dict[str, tuple] = {}
-ENV_FILE = Path(".env")
+ENV_FILE = Path(".env")  # overridden in register() from runtime.env_cfg
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -150,6 +168,13 @@ def _remove_env(key: str) -> None:
 # ── route registration ────────────────────────────────────────────────────────
 
 def register(app: "FastAPI", runtime: "AppRuntime") -> None:
+    global ENV_FILE
+    project_env = Path(__file__).resolve().parent.parent / ".env"
+    if project_env.exists():
+        ENV_FILE = project_env
+    else:
+        from brain.env_config import user_app_support_dir
+        ENV_FILE = user_app_support_dir() / ".env"
 
     def _trigger_ingest(integration_id: str) -> None:
         asyncio.create_task(
@@ -177,15 +202,36 @@ def register(app: "FastAPI", runtime: "AppRuntime") -> None:
 
     # ── Google OAuth ──────────────────────────────────────────────────────────
 
+    def _google_build_auth(cfg: dict) -> tuple[str, str, object]:
+        """Return (auth_url, redirect_uri, flow) using the registered redirect URI."""
+        from google_auth_oauthlib.flow import Flow
+        state = secrets.token_urlsafe(16)
+        redirect_uri = cfg["web"]["redirect_uris"][0]
+        flow = Flow.from_client_config(cfg, scopes=GOOGLE_SCOPES, redirect_uri=redirect_uri)
+        auth_url, _ = flow.authorization_url(prompt="consent", access_type="offline", state=state)
+        _oauth_states[state] = (flow, redirect_uri)
+        return auth_url, state, flow
+
+    def _google_redirect_uri(request: Request) -> str:
+        port = request.url.port or 80
+        return f"http://localhost:{port}/api/integrations/google/callback"
+
+    @app.get("/api/integrations/google/auth-url")
+    async def google_auth_url(request: Request):
+        try:
+            cfg = _get_google_client_config()
+            cfg = {**cfg, "web": {**cfg["web"], "redirect_uris": [_google_redirect_uri(request)]}}
+            auth_url, _, _ = _google_build_auth(cfg)
+            return JSONResponse({"url": auth_url})
+        except Exception as exc:
+            return JSONResponse({"error": str(exc)}, status_code=500)
+
     @app.get("/api/integrations/google/connect")
     async def google_connect(request: Request):
         try:
-            from google_auth_oauthlib.flow import Flow
-            state = secrets.token_urlsafe(16)
-            redirect_uri = str(request.base_url).rstrip("/") + "/api/integrations/google/callback"
-            flow = Flow.from_client_config(_get_google_client_config(), scopes=GOOGLE_SCOPES, redirect_uri=redirect_uri)
-            auth_url, _ = flow.authorization_url(prompt="consent", access_type="offline", state=state)
-            _oauth_states[state] = (flow, redirect_uri)
+            cfg = _get_google_client_config()
+            cfg = {**cfg, "web": {**cfg["web"], "redirect_uris": [_google_redirect_uri(request)]}}
+            auth_url, _, _ = _google_build_auth(cfg)
             return RedirectResponse(auth_url)
         except Exception as exc:
             return HTMLResponse(_error_page(str(exc)))

@@ -1,0 +1,54 @@
+{
+  "name": "brainsquared",
+  "version": "1.0.0",
+  "description": "brain² — your second brain that connects every tool you use",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "pack": "electron-builder --mac --dir",
+    "dist": "electron-builder --mac"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.46.0",
+    "keytar": "^7.9.0"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "so.brainsquared.app",
+    "productName": "brain²",
+    "directories": {
+      "buildResources": "icons"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "SupabaseConfig.js",
+      "renderer/**/*",
+      "icons/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/BrainServer",
+        "to": "BrainServer",
+        "filter": ["**/*"]
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": { "target": "dir" },
+      "icon": "icons/icon.icns",
+      "extendInfo": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLName": "so.brainsquared.app.auth",
+            "CFBundleURLSchemes": ["brainsquared"]
+          }
+        ]
+      }
+    }
+  }
+}

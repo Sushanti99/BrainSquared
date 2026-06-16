@@ -107,7 +107,8 @@ def build_daily_context(
         try:
             calendar_client = _load_legacy_module("calendar_client")
             bundle.calendar_events = calendar_client.get_todays_events()
-        except Exception:
+        except Exception as exc:
+            print(f"[daily] calendar fetch failed: {exc}", flush=True)
             bundle.calendar_events = []
 
     if want("email"):
@@ -115,7 +116,8 @@ def build_daily_context(
             gmail_client = _load_legacy_module("gmail_client")
             items = gmail_client.get_action_items()
             bundle.email_items = [e for e in items if not _is_dismissed(e.get("subject", ""), dismissed)]
-        except Exception:
+        except Exception as exc:
+            print(f"[daily] gmail fetch failed: {exc}", flush=True)
             bundle.email_items = []
 
     if want("notion"):

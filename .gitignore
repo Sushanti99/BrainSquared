@@ -1,8 +1,18 @@
 # credentials — never commit these
 .env
 credentials.json
+client_secret*
 token.json
 *.json.bak
+
+# Supabase config (contains URL + anon key — generated locally, not committed)
+macos/BrainSquared/Sources/SupabaseConfig.swift
+electron/SupabaseConfig.js
+
+# Electron
+electron/node_modules/
+electron/dist/
+electron/resources/BrainServer/
 
 # Claude Code local config
 .claude/
@@ -18,3 +28,14 @@ build/
 
 # macOS
 .DS_Store
+
+# PyInstaller output
+dist/
+build/brain/
+
+# Compiled binaries — run `pyinstaller brain.spec` to rebuild
+macos/BrainSquared/Resources/BrainServer
+
+# Xcode derived data
+macos/BrainSquared.xcodeproj/xcuserdata/
+macos/BrainSquared.xcodeproj/project.xcworkspace/xcuserdata/
