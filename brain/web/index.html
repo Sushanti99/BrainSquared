@@ -1784,6 +1784,7 @@
       <p id="agentModalBody">brain² can switch to other supported agents once they are installed and authenticated on this machine.</p>
       <div class="agent-modal-meta" id="agentModalMeta"></div>
       <form class="agent-key-form" id="agentKeyForm">
+        <div style="font-size:11px;color:var(--ink-muted);margin-bottom:4px">Optional — for direct API access, separate from CLI auth.</div>
         <div class="agent-key-row">
           <label for="anthropicKeyInput">Anthropic API key <span class="key-badge" id="anthropicKeyBadge"></span></label>
           <input id="anthropicKeyInput" type="password" autocomplete="off" spellcheck="false" placeholder="sk-ant-...">
@@ -2203,8 +2204,8 @@
       anthropicKeyHint.textContent = keys.anthropic_preview || "";
       anthropicKeyInput.placeholder = "Leave blank to keep existing key";
     } else {
-      anthropicKeyBadge.textContent = "not set";
-      anthropicKeyBadge.className = "key-badge unset";
+      anthropicKeyBadge.textContent = "";
+      anthropicKeyBadge.className = "";
       anthropicKeyHint.textContent = "";
       anthropicKeyInput.placeholder = "sk-ant-...";
     }
@@ -2214,8 +2215,8 @@
       openaiKeyHint.textContent = keys.openai_preview || "";
       openaiKeyInput.placeholder = "Leave blank to keep existing key";
     } else {
-      openaiKeyBadge.textContent = "not set";
-      openaiKeyBadge.className = "key-badge unset";
+      openaiKeyBadge.textContent = "";
+      openaiKeyBadge.className = "";
       openaiKeyHint.textContent = "";
       openaiKeyInput.placeholder = "sk-...";
     }
