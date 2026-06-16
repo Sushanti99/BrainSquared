@@ -1,9 +1,10 @@
-name: Sync main → mac-app-electron
+name: Sync branches (main ↔ mac-app-electron)
 
 on:
   push:
     branches:
       - main
+      - mac-app-electron
 
 jobs:
   sync:
@@ -19,8 +20,16 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Merge main into mac-app-electron
+      - name: Merge main → mac-app-electron
+        if: github.ref == 'refs/heads/main'
         run: |
           git checkout mac-app-electron
           git merge origin/main --no-edit
           git push origin mac-app-electron
+
+      - name: Merge mac-app-electron → main
+        if: github.ref == 'refs/heads/mac-app-electron'
+        run: |
+          git checkout main
+          git merge origin/mac-app-electron --no-edit
+          git push origin main
