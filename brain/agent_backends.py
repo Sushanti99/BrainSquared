@@ -170,8 +170,20 @@ class CodexBackend(BaseBackend):
             return_code = await self._process.wait()
             final_text = _read_output_last_message(output_last_message_path)
             if final_text and not emitted_visible_text:
-                emitted_visible_text = True
-                yield BackendEvent(type="chunk", content=final_text)
+                # final_text may be an error JSON blob from Codex — detect and surface it properly
+                try:
+                    parsed = json.loads(final_text)
+                    if isinstance(parsed, dict) and parsed.get("type") == "error":
+                        err = parsed.get("error")
+                        msg = (err.get("message") if isinstance(err, dict) else None) or parsed.get("message") or final_text
+                        yield BackendEvent(type="error", content=_friendly_codex_error(msg))
+                        emitted_visible_text = True
+                    else:
+                        emitted_visible_text = True
+                        yield BackendEvent(type="chunk", content=final_text)
+                except (json.JSONDecodeError, AttributeError):
+                    emitted_visible_text = True
+                    yield BackendEvent(type="chunk", content=final_text)
             if return_code != 0:
                 yield BackendEvent(type="error", content=stderr_text or f"Codex exited with code {return_code}")
             elif not emitted_visible_text:
@@ -251,6 +263,17 @@ def parse_claude_stream_line(line: str) -> BackendEvent | None:
     return BackendEvent(type="status", content=event_type or "status", raw=payload)
 
 
+def _friendly_codex_error(raw: str) -> str:
+    msg = raw.strip()
+    if "not supported" in msg and "ChatGPT account" in msg:
+        return f"{msg}\n\nThis usually means your OpenAI API key is a ChatGPT subscription key, not an API key. Go to platform.openai.com to get an API key, then add it via the agent (?) menu."
+    if "invalid_api_key" in msg or "Incorrect API key" in msg:
+        return "Your OpenAI API key is invalid or expired. Add a valid key via the agent (?) menu."
+    if "insufficient_quota" in msg or "exceeded your current quota" in msg:
+        return "Your OpenAI account has hit its usage limit. Check your billing at platform.openai.com."
+    return msg
+
+
 def parse_codex_jsonl_line(line: str) -> BackendEvent | None:
     line = line.strip()
     if not line:
@@ -273,8 +296,12 @@ def parse_codex_jsonl_line(line: str) -> BackendEvent | None:
     if event_type in {"response.completed", "completed"}:
         return BackendEvent(type="done", raw=payload)
     if event_type in {"response.error", "error"}:
-        message = payload.get("message") or payload.get("error") or "Codex returned an error."
-        return BackendEvent(type="error", content=str(message), raw=payload)
+        err = payload.get("error")
+        if isinstance(err, dict):
+            message = err.get("message") or str(err)
+        else:
+            message = payload.get("message") or str(err) or "Codex returned an error."
+        return BackendEvent(type="error", content=_friendly_codex_error(str(message)), raw=payload)
 
     message = payload.get("message")
     if isinstance(message, dict):

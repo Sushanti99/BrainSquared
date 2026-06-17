@@ -2102,6 +2102,24 @@
   let socket = null;
   let activeAssistantMessage = null;
   let running = false;
+  let responseTimeoutId = null;
+
+  function startResponseTimeout() {
+    clearResponseTimeout();
+    responseTimeoutId = setTimeout(() => {
+      if (running) {
+        appendMessage("error", "", "No response after 10 seconds. If you're using Codex, check your OpenAI API key via the agent (?) menu. If you're using Claude Code, run `claude login` in the terminal.");
+        setRunning(false);
+      }
+    }, 10000);
+  }
+
+  function clearResponseTimeout() {
+    if (responseTimeoutId !== null) {
+      clearTimeout(responseTimeoutId);
+      responseTimeoutId = null;
+    }
+  }
   let reconnectTimer = null;
   let suppressReconnect = false;
   let dailyOffset = 0;
@@ -2551,6 +2569,7 @@
         return;
       }
       if (payload.type === "chunk") {
+        clearResponseTimeout();
         hideThinkingDots();
         const messageAgent = payload.agent || currentAgent;
         if (!activeAssistantMessage) {
@@ -2582,6 +2601,7 @@
         return;
       }
       if (payload.type === "error") {
+        clearResponseTimeout();
         hideThinkingDots();
         renderAgentOptions(currentAgent);
         appendMessage("error", "", payload.message);
@@ -2702,6 +2722,7 @@
     closeDropdown();
     setRunning(true);
     updateStatus("Thinking...", true);
+    startResponseTimeout();
   });
 
   inputEl.addEventListener("keydown", (event) => {
