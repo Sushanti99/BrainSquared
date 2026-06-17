@@ -351,6 +351,7 @@
     }
     .key-badge.set { background: #d4edda; color: #2f7d4a; }
     .key-badge.unset { background: #f5e6d0; color: #8c5a2a; }
+    .key-badge.none { background: var(--rule); color: var(--ink-muted); }
     .key-hint {
       font-size: 11px;
       color: var(--ink-muted);
@@ -2204,8 +2205,8 @@
       anthropicKeyHint.textContent = keys.anthropic_preview || "";
       anthropicKeyInput.placeholder = "Leave blank to keep existing key";
     } else {
-      anthropicKeyBadge.textContent = "";
-      anthropicKeyBadge.className = "";
+      anthropicKeyBadge.textContent = "not added";
+      anthropicKeyBadge.className = "key-badge none";
       anthropicKeyHint.textContent = "";
       anthropicKeyInput.placeholder = "sk-ant-...";
     }
@@ -2215,8 +2216,8 @@
       openaiKeyHint.textContent = keys.openai_preview || "";
       openaiKeyInput.placeholder = "Leave blank to keep existing key";
     } else {
-      openaiKeyBadge.textContent = "";
-      openaiKeyBadge.className = "";
+      openaiKeyBadge.textContent = "not added";
+      openaiKeyBadge.className = "key-badge none";
       openaiKeyHint.textContent = "";
       openaiKeyInput.placeholder = "sk-...";
     }
