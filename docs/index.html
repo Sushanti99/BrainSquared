@@ -341,6 +341,79 @@
     color: #333; margin: 0;
   }
 
+  /* ============ USE CASES ============ */
+  .usecase-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px;
+  }
+  .usecase {
+    border-radius: 22px;
+    padding: 32px 30px;
+    min-height: 380px;
+    display: flex; flex-direction: column;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03), 0 12px 32px -16px rgba(0,0,0,0.10);
+    transition: transform 240ms;
+  }
+  .usecase:hover { transform: translateY(-5px) rotate(0deg) !important; }
+  .usecase.u1 { background: var(--card-peach);   transform: rotate(-1.2deg); }
+  .usecase.u2 { background: var(--card-lavender); transform: rotate(1deg); }
+  .usecase.u3 { background: var(--card-mint);    transform: rotate(-0.6deg); }
+  .usecase .pill {
+    display: inline-block; align-self: flex-start;
+    padding: 6px 14px; border-radius: 999px;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.14em; color: var(--ink);
+    margin-bottom: 18px;
+  }
+  .usecase.u1 .pill { background: var(--pill-peach); }
+  .usecase.u2 .pill { background: var(--pill-lavender); }
+  .usecase.u3 .pill { background: var(--pill-mint); }
+  .usecase h3 {
+    font-family: 'Kalam', cursive; font-weight: 700;
+    font-size: 30px; letter-spacing: -0.015em; line-height: 1.15;
+    margin: 0 0 16px;
+  }
+  .usecase p {
+    font-size: 15px; line-height: 1.62;
+    color: #2A2A2A; margin: 0 0 14px;
+  }
+  .usecase p em {
+    font-style: normal;
+    background: rgba(255,255,255,0.55);
+    padding: 1px 6px; border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+  }
+  .usecase .tag {
+    margin-top: auto;
+    font-family: 'Caveat', cursive;
+    font-size: 19px; color: var(--ink-muted);
+    padding-top: 12px;
+  }
+
+  /* ============ CONTACT ============ */
+  .contact-links {
+    display: flex; gap: 12px; justify-content: center;
+    flex-wrap: wrap;
+    margin: 0 0 32px;
+  }
+  .contact-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 18px; border-radius: 999px;
+    font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600;
+    color: var(--ink); text-decoration: none;
+    background: rgba(255,255,255,0.7);
+    border: 1.5px solid rgba(17,17,17,0.12);
+    transition: transform 160ms, background 160ms;
+  }
+  .contact-pill:hover { transform: translateY(-2px); background: #fff; }
+  .contact-pill svg { display: block; }
+  .contact-divider {
+    font-family: 'Caveat', cursive;
+    font-size: 22px; color: var(--ink-muted);
+    margin: 0 0 18px;
+  }
+
   /* ============ HOW IT WORKS ============ */
   .how-it-works {
     padding: 40px 48px 120px;
@@ -525,7 +598,8 @@
   <ul>
     <li><a href="#how">how it works</a></li>
     <li><a href="#features">features</a></li>
-    <li><a href="#">docs</a></li>
+    <li><a href="#use-cases">use cases</a></li>
+    <li><a href="manifesto.html">manifesto</a></li>
     <li><a href="https://github.com/Sushanti99/BrainSquared" target="_blank">github</a></li>
   </ul>
   <a href="https://github.com/Sushanti99/BrainSquared" target="_blank" style="text-decoration:none"><button class="cta-nav">Get started <span class="arrow">→</span></button></a>
@@ -644,7 +718,7 @@
 
   <div class="hero-cta">
     <a href="https://github.com/Sushanti99/BrainSquared" target="_blank" style="text-decoration:none"><button class="btn-primary">Start your vault <span class="arrow">→</span></button></a>
-    <button class="btn-secondary">See it work</button>
+    <a href="manifesto.html" style="text-decoration:none"><button class="btn-secondary">Read the manifesto</button></a>
   </div>
 </section>
 
@@ -694,6 +768,43 @@
   </div>
 </section>
 
+<!-- USE CASES -->
+<section class="section" id="use-cases">
+  <div class="section-header">
+    <div class="section-eyebrow">use cases · who it's for</div>
+    <h2 class="section-title">a buddy for the way<br>you actually work.</h2>
+  </div>
+
+  <div class="usecase-grid">
+    <div class="usecase u1">
+      <span class="pill">DAY TRADER</span>
+      <h3>The personalized terminal.</h3>
+      <p>Cass trades equities part-time. brain² watches her positions, pulls earnings transcripts, and tracks sentiment from the analysts she actually trusts.</p>
+      <p>Every 30 minutes during market hours it pings her with <em>context</em>, not headlines — <em>"NVDA −2.1%. Guidance miss. Your note from Mar 4 said cut if guidance softened."</em></p>
+      <p>Screenshot a chart into the vault and it gets tagged to the ticker. Her daily note is a Bloomberg terminal she trained on herself.</p>
+      <div class="tag">→ a terminal that knows your thesis</div>
+    </div>
+
+    <div class="usecase u2">
+      <span class="pill">RESEARCHER</span>
+      <h3>A lab notebook that reads with you.</h3>
+      <p>Arjun is six months from defending. brain² watches the arXiv categories he cares about and cross-references new papers against his existing notes.</p>
+      <p>It surfaces the three that actually connect to what he's writing — drafts citation blocks, tracks which thread in his thesis has gone quiet for a week, parses email from his advisor into action items.</p>
+      <p>The vault becomes a lab notebook — except it's reading the literature alongside him.</p>
+      <div class="tag">→ a notebook that does the lit review</div>
+    </div>
+
+    <div class="usecase u3">
+      <span class="pill">SOLO FOUNDER</span>
+      <h3>The COO you don't have.</h3>
+      <p>Maya runs a 4-person startup. brain² pulls overnight Linear issues, unanswered investor emails, customer Slack threads, and yesterday's metrics into one morning page.</p>
+      <p>It drafts the reply to the lead in her voice. It flags the customer ticket that's gone two days without a response. It writes the standup.</p>
+      <p>She doesn't open Linear, Slack, or Gmail until 3pm — and when she does, she's already caught up.</p>
+      <div class="tag">→ an operator running in the background</div>
+    </div>
+  </div>
+</section>
+
 <!-- HOW IT WORKS -->
 <section class="how-it-works" id="how">
   <div class="section-eyebrow">how it works</div>
@@ -720,13 +831,30 @@
   </div>
 </section>
 
-<!-- WAITLIST -->
-<section class="waitlist">
-  <div class="waitlist-scrib" style="top:14%;left:8%;font-size:30px;transform:rotate(-5deg)">coming soon ✦</div>
-  <div class="waitlist-scrib" style="bottom:16%;right:9%;font-size:26px;transform:rotate(4deg)">be first →</div>
-  <div class="waitlist-badge">premium · coming soon</div>
-  <h2>brain², but supercharged.</h2>
-  <p>sync across devices, team vaults, and deeper integrations. <br>join the wishlist and be first to know.</p>
+<!-- CONTACT -->
+<section class="waitlist" id="contact">
+  <div class="waitlist-scrib" style="top:14%;left:8%;font-size:30px;transform:rotate(-5deg)">say hi ✦</div>
+  <div class="waitlist-scrib" style="bottom:16%;right:9%;font-size:26px;transform:rotate(4deg)">we read everything →</div>
+  <div class="waitlist-badge">get in touch</div>
+  <h2>say hi.</h2>
+  <p>drop a line, follow along, or join the wishlist for what's next.</p>
+
+  <div class="contact-links">
+    <a class="contact-pill" href="mailto:sushanti@berkeley.edu">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="22,6 12,13 2,6"/></svg>
+      email
+    </a>
+    <a class="contact-pill" href="https://x.com/usebrainsquared" target="_blank">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+      twitter
+    </a>
+    <a class="contact-pill" href="https://github.com/Sushanti99/BrainSquared" target="_blank">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+      github
+    </a>
+  </div>
+
+  <div class="contact-divider">or join the wishlist for the premium build ↓</div>
   <form class="waitlist-form" id="waitlist-form">
     <input type="email" name="email" id="waitlist-email" placeholder="gavin@hooli.com" required>
     <button type="submit" id="waitlist-btn">join wishlist</button>
@@ -746,10 +874,11 @@
 <footer class="end">
   <div class="wordmark">brain<span class="sup">²</span></div>
   <ul>
-    <li><a href="#">docs</a></li>
+    <li><a href="manifesto.html">manifesto</a></li>
+    <li><a href="#use-cases">use cases</a></li>
+    <li><a href="#contact">contact</a></li>
     <li><a href="https://github.com/Sushanti99/BrainSquared" target="_blank">github</a></li>
     <li><a href="https://x.com/usebrainsquared" target="_blank">twitter</a></li>
-    <li><a href="#">discord</a></li>
   </ul>
   <div>© 2026 · built for people who take notes</div>
 </footer>
