@@ -183,4 +183,5 @@ cd macos && xcodegen generate    # regenerates Xcode project
 - [ ] Action layer — reply to emails, send Slack messages, create tasks, directly from BrainSquared
 - [ ] VPS deployment with remote vault sync
 - [ ] Mobile access via Tailscale
+- [ ] Phone-sized layout: the web UI is designed for laptop screens for now; adapt it (especially the Agents tab's map and access table) once there's a reason to
 - [ ] Scheduled background updates
