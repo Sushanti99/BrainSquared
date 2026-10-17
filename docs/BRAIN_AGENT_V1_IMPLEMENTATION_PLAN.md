@@ -94,18 +94,18 @@ These decisions are already confirmed:
 
 The current repository is a flat Python toolset:
 
-- [main.py](/Users/sanjit/Desktop/san/todos-with-obsidian/main.py)
-- [chat.py](/Users/sanjit/Desktop/san/todos-with-obsidian/chat.py)
-- [daily_note.py](/Users/sanjit/Desktop/san/todos-with-obsidian/daily_note.py)
-- [context_builder.py](/Users/sanjit/Desktop/san/todos-with-obsidian/context_builder.py)
-- [obsidian_reader.py](/Users/sanjit/Desktop/san/todos-with-obsidian/obsidian_reader.py)
-- [config.py](/Users/sanjit/Desktop/san/todos-with-obsidian/config.py)
-- [setup.py](/Users/sanjit/Desktop/san/todos-with-obsidian/setup.py)
+- [main.py](../main.py)
+- [chat.py](../chat.py)
+- [daily_note.py](../daily_note.py)
+- [context_builder.py](../context_builder.py)
+- [obsidian_reader.py](../obsidian_reader.py)
+- [config.py](../config.py)
+- [setup.py](../setup.py)
 - integration clients:
-  - [gmail_client.py](/Users/sanjit/Desktop/san/todos-with-obsidian/gmail_client.py)
-  - [calendar_client.py](/Users/sanjit/Desktop/san/todos-with-obsidian/calendar_client.py)
-  - [notion_client.py](/Users/sanjit/Desktop/san/todos-with-obsidian/notion_client.py)
-  - [news_client.py](/Users/sanjit/Desktop/san/todos-with-obsidian/news_client.py)
+  - [gmail_client.py](../gmail_client.py)
+  - [calendar_client.py](../calendar_client.py)
+  - [notion_client.py](../notion_client.py)
+  - [news_client.py](../news_client.py)
 
 Useful current assets:
 
@@ -207,7 +207,7 @@ docs/
 
 ### 7.1 Why `app_config.py` and `env_config.py`
 
-The current repo already has a top-level [config.py](/Users/sanjit/Desktop/san/todos-with-obsidian/config.py). Reusing the same name inside `brain/` would be workable, but it increases migration confusion.
+The current repo already has a top-level [config.py](../config.py). Reusing the same name inside `brain/` would be workable, but it increases migration confusion.
 
 Use:
 
@@ -932,7 +932,7 @@ Responsibilities:
 
 ### 18.1 Existing parser migration
 
-Move logic from [obsidian_reader.py](/Users/sanjit/Desktop/san/todos-with-obsidian/obsidian_reader.py) into `brain/vault.py` incrementally.
+Move logic from [obsidian_reader.py](../obsidian_reader.py) into `brain/vault.py` incrementally.
 
 Preserve:
 
@@ -979,7 +979,7 @@ Do not break existing `python main.py daily` immediately.
 
 Current issue:
 
-- [setup.py](/Users/sanjit/Desktop/san/todos-with-obsidian/setup.py) is an onboarding script, not packaging metadata
+- [setup.py](../setup.py) is an onboarding script, not packaging metadata
 
 V1 plan:
 
@@ -992,7 +992,7 @@ This does not block idli V1.
 
 ## 21. Dependency Plan
 
-Current dependencies are in [requirements.txt](/Users/sanjit/Desktop/san/todos-with-obsidian/requirements.txt).
+Current dependencies are in [requirements.txt](../requirements.txt).
 
 Add likely V1 dependencies:
 
@@ -1133,7 +1133,7 @@ Implementation notes:
 - define dataclasses first in `brain/models.py`
 - build config loading before any server code
 - implement vault mapping logic before daily note migration work
-- keep top-level [config.py](/Users/sanjit/Desktop/san/todos-with-obsidian/config.py) untouched until compatibility wrapping is ready
+- keep top-level [config.py](../config.py) untouched until compatibility wrapping is ready
 
 ### Phase 2: Server and UI
 
@@ -1268,7 +1268,7 @@ Files to create or migrate:
 
 - `brain/daily.py`
 - `brain/integration_context.py`
-- compatibility wrappers from existing [daily_note.py](/Users/sanjit/Desktop/san/todos-with-obsidian/daily_note.py) and [context_builder.py](/Users/sanjit/Desktop/san/todos-with-obsidian/context_builder.py)
+- compatibility wrappers from existing [daily_note.py](../daily_note.py) and [context_builder.py](../context_builder.py)
 
 Primary functions and classes:
 
@@ -1322,9 +1322,9 @@ Exit criteria:
 
 Files to update:
 
-- [main.py](/Users/sanjit/Desktop/san/todos-with-obsidian/main.py)
-- [README.md](/Users/sanjit/Desktop/san/todos-with-obsidian/README.md)
-- [requirements.txt](/Users/sanjit/Desktop/san/todos-with-obsidian/requirements.txt)
+- [main.py](../main.py)
+- [README.md](../README.md)
+- [requirements.txt](../requirements.txt)
 - tests under `tests/`
 
 Primary tasks:

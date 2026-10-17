@@ -190,7 +190,7 @@ def setup_notion(env: dict):
     print()
     print("  In the browser:")
     print("   1. Click '+ New integration'")
-    print("   2. Give it any name (e.g. todos-with-obsidian)")
+    print("   2. Give it any name (e.g. BrainSquared)")
     print("   3. Click Submit → copy the 'Internal Integration Secret'")
     print()
     print("  Then share any pages or databases you want included:")
@@ -231,7 +231,7 @@ def setup_anthropic(env: dict):
 
 def main():
     print()
-    print("  todos-with-obsidian — setup")
+    print("  BrainSquared — setup")
     print("  ─────────────────────────────────────────────────")
     print("  This opens a browser for each service you want to connect.")
     print("  All credentials are saved locally to .env — never shared.")

@@ -124,7 +124,7 @@ def generate(bundle: ContextBundle, vault_path: Path = config.VAULT_PATH) -> Pat
     lines += [
         "",
         "---",
-        f"*Generated at {generated_at} by todos-with-obsidian*",
+        f"*Generated at {generated_at} by BrainSquared*",
     ]
 
     for attempt in range(3):

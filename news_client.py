@@ -49,7 +49,7 @@ def _parse_date(entry: dict) -> datetime | None:
 def _fetch_feed(name: str, url: str, cutoff: datetime) -> list[dict]:
     try:
         # Fetch with timeout via requests, pass content to feedparser
-        resp = requests.get(url, timeout=8, headers={"User-Agent": "todos-with-obsidian/1.0"})
+        resp = requests.get(url, timeout=8, headers={"User-Agent": "BrainSquared/1.0"})
         resp.raise_for_status()
         feed = feedparser.parse(resp.content)
 
