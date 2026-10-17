@@ -128,6 +128,29 @@ Every day you get a unified view of what needs your attention. You act on it. Wh
 
 ---
 
+## Agents & access
+
+Every agent reaches your apps through one BrainSquared gateway, and you decide what each one can do. Your logins stay on your machine.
+
+```bash
+brain gateway --vault ~/my-vault                       # run the gateway (port 6684)
+brain agents --vault ~/my-vault add instinct --apps google:read
+brain agents --vault ~/my-vault add codex --apps notion:write,slack:ask --context core --install codex
+brain agents --vault ~/my-vault revoke instinct        # blocked on its very next call
+brain agents --vault ~/my-vault log                    # what every agent did
+```
+
+Each app gets one of three levels per agent:
+- **read:** read-only tools.
+- **ask:** every write needs your approval in a desktop prompt.
+- **write:** full access.
+
+Unknown tools count as writes. `--context` lets an agent search the vault folders you name. Rules live in `system/access.yaml` and the activity log in `system/audit.jsonl`. You can edit both from the **Agents** tab too.
+
+To have your daily note ready every morning: `brain schedule --vault ~/my-vault install --at 06:30`.
+
+---
+
 ## Integrations
 
 Gmail, Google Calendar, GitHub, Notion, Slack, Linear — with more on the way. Connect them through the UI. No config files, no manual credential wrangling.

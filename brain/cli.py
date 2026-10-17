@@ -82,6 +82,42 @@ def build_parser() -> argparse.ArgumentParser:
     integrations_parser.add_argument("--agent", choices=["claude-code", "codex"])
     integrations_parser.set_defaults(func=cmd_integrations)
 
+    gateway_parser = subparsers.add_parser("gateway", help="Run the gateway that agents use to reach your apps")
+    gateway_parser.add_argument("--vault", help="Vault path")
+    gateway_parser.add_argument("--config", help="Explicit path to brain.config.yaml")
+    gateway_parser.add_argument("--port", type=int, default=None, help="Defaults to 6684")
+    gateway_parser.set_defaults(func=cmd_gateway)
+
+    agents_parser = subparsers.add_parser("agents", help="Control which agent can reach which app")
+    agents_parser.add_argument("--vault", help="Vault path")
+    agents_parser.add_argument("--config", help="Explicit path to brain.config.yaml")
+    agents_sub = agents_parser.add_subparsers(dest="agents_command", required=True)
+    agents_sub.add_parser("list", help="Show every agent and its access")
+    add_parser = agents_sub.add_parser("add", help="Add an agent, or change an existing agent's access")
+    add_parser.add_argument("name", help="Any name, e.g. claude-code, codex, instinct")
+    add_parser.add_argument("--apps", default="", help="e.g. google:read,notion:write,slack:ask")
+    add_parser.add_argument("--context", default=None, help="Vault folders it may read, e.g. core,references")
+    add_parser.add_argument(
+        "--install", choices=["claude-code", "codex"],
+        help="Also route this coding agent through the gateway (replaces its direct app servers)",
+    )
+    for verb, text in (("revoke", "Block an agent immediately"), ("restore", "Undo a revoke"), ("remove", "Delete an agent")):
+        verb_parser = agents_sub.add_parser(verb, help=text)
+        verb_parser.add_argument("name")
+    log_parser = agents_sub.add_parser("log", help="Show what agents have done")
+    log_parser.add_argument("name", nargs="?", help="Only this agent")
+    log_parser.add_argument("-n", type=int, default=20, help="Number of entries")
+    agents_parser.set_defaults(func=cmd_agents)
+
+    schedule_parser = subparsers.add_parser("schedule", help="Prepare your daily note every morning, automatically")
+    schedule_parser.add_argument("--vault", help="Vault path")
+    schedule_parser.add_argument("--config", help="Explicit path to brain.config.yaml")
+    schedule_sub = schedule_parser.add_subparsers(dest="schedule_command", required=True)
+    install_parser = schedule_sub.add_parser("install", help="Run `brain daily` every day (macOS launchd)")
+    install_parser.add_argument("--at", default="06:30", help="Time of day, HH:MM (default 06:30)")
+    schedule_sub.add_parser("remove", help="Stop the daily run")
+    schedule_parser.set_defaults(func=cmd_schedule)
+
     return parser
 
 
@@ -333,6 +369,108 @@ def cmd_integrations(args: argparse.Namespace) -> int:
     status = integrations_core.compute_status(args.agent)
     for name, connected in status.items():
         print(f"  {name:10s} {'connected' if connected else 'not connected'}")
+    return 0
+
+
+def _system_dir(args: argparse.Namespace) -> Path:
+    from brain.vault import resolve_vault_paths
+
+    app_cfg = load_app_config(vault_path=args.vault, config_path=args.config)
+    return resolve_vault_paths(app_cfg).system
+
+
+def cmd_gateway(args: argparse.Namespace) -> int:
+    import os
+
+    from brain.gateway import DEFAULT_GATEWAY_PORT, run_gateway
+    from brain.vault import resolve_vault_paths
+
+    app_cfg = load_app_config(vault_path=args.vault, config_path=args.config)
+    vault_paths = resolve_vault_paths(app_cfg)
+    env_cfg = load_env_config()
+    run_gateway(
+        system_dir=vault_paths.system,
+        vault_root=vault_paths.root,
+        environ={**os.environ, **env_cfg.raw_env},
+        port=args.port or DEFAULT_GATEWAY_PORT,
+    )
+    return 0
+
+
+def _describe_agent(agent) -> str:
+    apps = ", ".join(f"{app}:{level}" for app, level in agent.apps.items()) or "no apps"
+    context = ", ".join(agent.context) or "none"
+    state = "  [REVOKED]" if agent.revoked else ""
+    return f"{agent.name}{state}\n    apps: {apps}\n    vault context: {context}"
+
+
+def cmd_agents(args: argparse.Namespace) -> int:
+    from brain import mcp_config, policy
+    from brain.gateway import gateway_url
+
+    system_dir = _system_dir(args)
+    rules = policy.policy_path(system_dir)
+    command = args.agents_command
+
+    if command == "list":
+        agents = policy.load_policies(rules)
+        if not agents:
+            print("No agents yet. Add one with: brain agents add NAME --apps google:read")
+        for agent in agents.values():
+            print(_describe_agent(agent))
+        return 0
+
+    if command == "add":
+        apps = policy.parse_apps(args.apps)
+        context = [folder.strip() for folder in args.context.split(",") if folder.strip()] if args.context is not None else None
+        agent = policy.upsert_agent(rules, args.name, apps=apps, context=context)
+        url = gateway_url(agent.token)
+        print(_describe_agent(agent))
+        if args.install:
+            mcp_config.add_gateway(url, agents=args.install)
+            print(f"\n{args.install} now reaches your apps only through BrainSquared.")
+        else:
+            print(f"\nGive this agent this MCP server URL (keep it secret):\n  {url}")
+        print("Run `brain gateway` to start the gateway if it isn't running.")
+        return 0
+
+    if command in ("revoke", "restore"):
+        agent = policy.set_revoked(rules, args.name, command == "revoke")
+        print(f"{agent.name}: {'revoked — its next call will be blocked' if agent.revoked else 'access restored'}")
+        return 0
+
+    if command == "remove":
+        policy.remove_agent(rules, args.name)
+        if args.name in ("claude-code", "codex") and mcp_config.gateway_enabled(args.name):
+            mcp_config.remove_gateway(agents=args.name)
+            print(f"{args.name} is back on its direct app servers.")
+        print(f"Removed {args.name}.")
+        return 0
+
+    if command == "log":
+        entries = policy.read_audit(policy.audit_path(system_dir), limit=args.n, agent=args.name)
+        if not entries:
+            print("No agent activity yet.")
+        for entry in entries:
+            reason = f" ({entry['reason']})" if entry.get("reason") else ""
+            print(f"{entry['ts']}  {entry['agent']:12s} {entry['outcome']:9s} {entry['app']}:{entry['tool']}{reason}")
+        return 0
+    return 1
+
+
+def cmd_schedule(args: argparse.Namespace) -> int:
+    from brain import schedule
+
+    if args.schedule_command == "install":
+        app_cfg = load_app_config(vault_path=args.vault, config_path=args.config)
+        hour, minute = schedule.parse_time(args.at)
+        path = schedule.install(app_cfg.vault.path, hour=hour, minute=minute)
+        print(f"Your daily note will be prepared every day at {hour:02d}:{minute:02d}.\n  {path}")
+        return 0
+    if schedule.remove():
+        print("Daily run removed.")
+    else:
+        print("No daily run was scheduled.")
     return 0
 
 

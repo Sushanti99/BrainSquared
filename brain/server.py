@@ -47,7 +47,7 @@ def _api_key_status() -> dict[str, str | bool | None]:
 
 
 from brain.agents import available_agents
-from brain import integrations_api, mcp_config
+from brain import agents_api, integrations_api, mcp_config
 from brain.agent_backends import get_backend
 from brain.daily import append_capture_task, generate_daily_note
 from brain.env_config import integration_status
@@ -439,6 +439,7 @@ def create_app(runtime: AppRuntime) -> FastAPI:
         return StreamingResponse(_stream(), media_type="text/plain")
 
     integrations_api.register(app, runtime)
+    agents_api.register(app, runtime)
     return app
 
 

@@ -102,3 +102,22 @@ def test_cmd_integrations_prints_status(monkeypatch, capsys):
     out = capsys.readouterr().out
     assert "linear" in out and "connected" in out
     assert "github" in out and "not connected" in out
+
+
+def test_agents_commands_manage_rules(tmp_path, capsys):
+    from brain.init_vault import initialize_vault
+
+    vault = str(tmp_path / "vault")
+    initialize_vault(tmp_path / "vault", agent="claude-code")
+    parser = cli.build_parser()
+
+    assert cli.cmd_agents(parser.parse_args(["agents", "--vault", vault, "add", "muse", "--apps", "slack:read,notion:ask", "--context", "core"])) == 0
+    out = capsys.readouterr().out
+    assert "slack:read, notion:ask" in out and "/a/" in out
+
+    assert cli.cmd_agents(parser.parse_args(["agents", "--vault", vault, "revoke", "muse"])) == 0
+    assert cli.cmd_agents(parser.parse_args(["agents", "--vault", vault, "list"])) == 0
+    assert "muse  [REVOKED]" in capsys.readouterr().out
+
+    assert cli.cmd_agents(parser.parse_args(["agents", "--vault", vault, "log"])) == 0
+    assert "No agent activity yet." in capsys.readouterr().out

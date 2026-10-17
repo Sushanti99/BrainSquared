@@ -106,3 +106,40 @@ def test_add_server_replaces_existing_codex_env_block_without_duplicates(tmp_pat
     codex_text = codex_config.read_text(encoding="utf-8")
     assert codex_text.count("[mcp_servers.github.env]") == 1
     assert 'GITHUB_PERSONAL_ACCESS_TOKEN = "second"' in codex_text
+
+
+def test_gateway_replaces_direct_servers_and_blocks_new_ones(tmp_path, monkeypatch):
+    claude_settings = tmp_path / "claude-settings.json"
+    codex_config = tmp_path / "codex-config.toml"
+    monkeypatch.setattr(mcp_config, "CLAUDE_CONFIG", claude_settings)
+    monkeypatch.setattr(mcp_config, "CODEX_CONFIG", codex_config)
+    mcp_config.add_server("github", {"api_key": "ghp_test"})
+    claude_settings.write_text(json.dumps({
+        "mcpServers": {**json.loads(claude_settings.read_text())["mcpServers"], "my-own": {"command": "x"}},
+    }))
+
+    mcp_config.add_gateway("http://127.0.0.1:6684/a/tok/mcp")
+
+    servers = json.loads(claude_settings.read_text())["mcpServers"]
+    assert servers == {"my-own": {"command": "x"}, "brainsquared": {"type": "http", "url": "http://127.0.0.1:6684/a/tok/mcp"}}
+    codex_text = codex_config.read_text()
+    assert "[mcp_servers.github]" not in codex_text
+    assert 'url = "http://127.0.0.1:6684/a/tok/mcp"' in codex_text
+    assert mcp_config.gateway_enabled("claude-code") and mcp_config.gateway_enabled("codex")
+
+    # Connecting another app later must not give the agents a way around the gateway.
+    mcp_config.add_server("notion", {"api_key": "secret"})
+    assert "notion" not in json.loads(claude_settings.read_text())["mcpServers"]
+    assert "[mcp_servers.notion]" not in codex_config.read_text()
+
+
+def test_remove_gateway_restores_direct_servers(tmp_path, monkeypatch):
+    claude_settings = tmp_path / "claude-settings.json"
+    monkeypatch.setattr(mcp_config, "CLAUDE_CONFIG", claude_settings)
+    mcp_config.add_gateway("http://127.0.0.1:6684/a/tok/mcp", agents="claude-code")
+
+    mcp_config.remove_gateway(agents="claude-code", environ={"GITHUB_TOKEN": "ghp_test"})
+
+    servers = json.loads(claude_settings.read_text())["mcpServers"]
+    assert "brainsquared" not in servers and "github" in servers
+    assert not mcp_config.gateway_enabled("claude-code")

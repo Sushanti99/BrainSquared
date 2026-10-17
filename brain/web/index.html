@@ -1150,6 +1150,80 @@
       box-shadow: 0 0 0 4px rgba(232,107,90,0.18);
     }
 
+    /* ============ AGENTS VIEW ============ */
+    .gw-status {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--ink-muted);
+      margin: -16px 0 20px;
+    }
+    .gw-status code {
+      background: var(--paper-sunken);
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+    .gw-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--ink-ghost); }
+    .gw-dot.on { background: #3fa66b; }
+    .agent-add { display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap; }
+    .agent-add input {
+      flex: 1;
+      min-width: 200px;
+      max-width: 320px;
+      border: 1px solid var(--rule);
+      background: var(--paper);
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 8px 16px;
+      font: inherit;
+      font-size: 14px;
+    }
+    .intg.agent-revoked { opacity: 0.6; }
+    .agent-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 13px;
+      margin-bottom: 8px;
+      color: var(--ink);
+    }
+    .agent-row select {
+      border: 1px solid rgba(17,17,17,0.12);
+      background: rgba(255,255,255,0.6);
+      color: var(--ink);
+      border-radius: 8px;
+      padding: 3px 6px;
+      font: inherit;
+      font-size: 12px;
+    }
+    :root[data-theme="dark"] .agent-row select { background: rgba(255,255,255,0.06); border-color: var(--rule); }
+    .agent-folders { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; margin: 4px 0 14px; color: var(--ink); }
+    .agent-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+      margin: 6px 0 8px;
+    }
+    .agent-log-title { font-family: 'Kalam', cursive; font-size: 28px; margin: 36px 0 12px; }
+    .agent-log { list-style: none; margin: 0; padding: 0; font-size: 13px; }
+    .agent-log li {
+      display: grid;
+      grid-template-columns: 70px 110px 80px 1fr;
+      gap: 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--rule);
+      align-items: baseline;
+    }
+    .agent-log time, .agent-log .tool { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--ink-muted); }
+    .agent-log .outcome { font-weight: 600; }
+    .agent-log .outcome.denied, .agent-log .outcome.rejected, .agent-log .outcome.error { color: #c4553f; }
+    .agent-log .outcome.allowed, .agent-log .outcome.approved { color: #3fa66b; }
+    @media (max-width: 640px) {
+      .agent-log li { grid-template-columns: 1fr 1fr; }
+    }
+
     /* ============ INTEGRATIONS VIEW ============ */
     .integrations-view {
       display: none;
@@ -1733,6 +1807,7 @@
       <button id="tabHome" type="button">Home</button>
       <button class="active" id="tabTasks" type="button">Tasks</button>
       <button id="tabInt" type="button">Integrations</button>
+      <button id="tabAgents" type="button">Agents</button>
     </nav>
     <div class="top-right">
       <button class="theme-toggle" id="themeToggle" type="button">◐ light</button>
@@ -1851,6 +1926,24 @@
       <div class="page-scribble">one click each</div>
     </div>
     <div class="integrations-grid" id="intGrid"></div>
+  </div>
+
+  <!-- ============ AGENTS VIEW ============ -->
+  <div class="integrations-view" id="agentsView">
+    <div class="page-header">
+      <div class="page-eyebrow">AGENTS &amp; ACCESS</div>
+      <h1 class="page-title">who can reach what.</h1>
+      <p class="page-sub">every agent reaches your apps through brain². pick which apps each one can use, whether it can only read, must ask you first, or can act. revoke any agent in one click.</p>
+      <div class="page-scribble">you're in control</div>
+    </div>
+    <div class="gw-status" id="gwStatus"></div>
+    <div class="agent-add">
+      <input id="newAgentName" type="text" placeholder="agent name, e.g. instinct" autocomplete="off">
+      <button class="intg-action connect" id="addAgentBtn" type="button">Add agent →</button>
+    </div>
+    <div class="integrations-grid" id="agentGrid"></div>
+    <h2 class="agent-log-title">activity</h2>
+    <ul class="agent-log" id="agentLog"></ul>
   </div>
 
   <!-- ============ HOME VIEW ============ -->
@@ -2876,11 +2969,14 @@
   const tasksView = document.getElementById("tasksView");
   const intView = document.getElementById("intView");
   const intGrid = document.getElementById("intGrid");
+  const tabAgents = document.getElementById("tabAgents");
+  const agentsView = document.getElementById("agentsView");
 
   const TABS = [
     { btn: tabHome, view: homeView, onEnter: loadHomeView },
     { btn: tabTasks, view: tasksView, onEnter: null },
     { btn: tabInt, view: intView, onEnter: loadIntegrations },
+    { btn: tabAgents, view: agentsView, onEnter: loadAgents },
   ];
 
   function switchTab(index) {
@@ -2895,6 +2991,7 @@
   tabHome.addEventListener("click", () => switchTab(0));
   tabTasks.addEventListener("click", () => switchTab(1));
   tabInt.addEventListener("click", () => switchTab(2));
+  tabAgents.addEventListener("click", () => switchTab(3));
 
   // Tasks view is active by default
   tasksView.style.display = "";
@@ -3342,6 +3439,126 @@
       loadIntegrations();
     }
   }
+
+  // ── agents & access ────────────────────────────────────────────────────────
+  const agentGrid = document.getElementById("agentGrid");
+  const agentLog = document.getElementById("agentLog");
+  const gwStatus = document.getElementById("gwStatus");
+  const newAgentName = document.getElementById("newAgentName");
+  const VAULT_FOLDERS = ["core", "references", "daily", "thoughts"];
+  const AGENT_COLORS = ["mint", "blue", "lavender", "peach", "yellow", "rose"];
+  let agentLogTimer = null;
+
+  function esc(value) {
+    return String(value ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+  }
+
+  async function loadAgents() {
+    let data;
+    try {
+      data = await fetch("/api/agents").then(r => r.json());
+    } catch {
+      agentGrid.innerHTML = `<div style="color:var(--ink-muted);font-size:14px;">Could not load agents.</div>`;
+      return;
+    }
+    const gw = data.gateway || {};
+    gwStatus.innerHTML = gw.running
+      ? `<span class="gw-dot on"></span>gateway running · apps live: ${esc((gw.apps || []).join(", ") || "none")}`
+      : `<span class="gw-dot"></span>gateway is off. start it with <code>brain gateway</code> so agents can reach your apps`;
+
+    const apps = data.connected_apps || [];
+    const labels = data.app_labels || {};
+    agentGrid.innerHTML = "";
+    if (!data.agents.length) {
+      agentGrid.innerHTML = `<div style="color:var(--ink-muted);font-size:14px;">No agents yet. Add one above, then give it its private URL.</div>`;
+    }
+    data.agents.forEach((agent, i) => agentGrid.appendChild(renderAgentCard(agent, apps, labels, AGENT_COLORS[i % AGENT_COLORS.length])));
+    loadAgentLog();
+    clearInterval(agentLogTimer);
+    agentLogTimer = setInterval(() => {
+      if (agentsView.classList.contains("active")) loadAgentLog(); else clearInterval(agentLogTimer);
+    }, 3000);
+  }
+
+  function renderAgentCard(agent, apps, labels, color) {
+    const card = document.createElement("div");
+    card.className = `intg c-${color}${agent.revoked ? " agent-revoked" : ""}`;
+    const appRows = apps.length ? apps.map(app => {
+      const level = agent.apps[app] || "none";
+      const options = ["none", "read", "ask", "write"].map(opt =>
+        `<option value="${opt}"${opt === level ? " selected" : ""}>${opt === "ask" ? "ask first" : opt === "none" ? "no access" : opt}</option>`).join("");
+      return `<label class="agent-row"><span>${esc(labels[app] || app)}</span><select data-app="${esc(app)}">${options}</select></label>`;
+    }).join("") : `<p>Connect apps in Integrations first.</p>`;
+    const folders = VAULT_FOLDERS.map(folder =>
+      `<label><input type="checkbox" data-folder="${folder}"${agent.context.includes(folder) ? " checked" : ""}> ${folder}</label>`).join("");
+
+    card.innerHTML = `
+      <span class="pill">${agent.revoked ? "REVOKED" : "AGENT"}</span>
+      <h3>${esc(agent.name)}</h3>
+      <div class="agent-label">apps</div>
+      ${appRows}
+      <div class="agent-label">vault context</div>
+      <div class="agent-folders">${folders}</div>
+      <div class="intg-actions" style="margin-top:auto;">
+        <button class="intg-action connect" data-act="save">Save</button>
+        <button class="intg-action copy" data-act="copy">Copy URL</button>
+        <button class="intg-action disconnect" data-act="${agent.revoked ? "restore" : "revoke"}">${agent.revoked ? "Restore" : "Revoke"}</button>
+      </div>`;
+
+    card.addEventListener("click", async (event) => {
+      const btn = event.target.closest("button[data-act]");
+      if (!btn) return;
+      const act = btn.dataset.act;
+      if (act === "save") {
+        const appsBody = {};
+        card.querySelectorAll("select[data-app]").forEach(sel => { if (sel.value !== "none") appsBody[sel.dataset.app] = sel.value; });
+        const context = [...card.querySelectorAll("input[data-folder]:checked")].map(box => box.dataset.folder);
+        await fetch("/api/agents", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: agent.name, apps: appsBody, context }),
+        });
+        btn.textContent = "Saved";
+        setTimeout(loadAgents, 700);
+      } else if (act === "copy") {
+        try { await navigator.clipboard.writeText(agent.url); btn.textContent = "Copied"; }
+        catch { window.prompt("Copy this URL", agent.url); }
+        setTimeout(() => { btn.textContent = "Copy URL"; }, 1400);
+      } else {
+        await fetch(`/api/agents/${encodeURIComponent(agent.name)}/${act}`, { method: "POST" });
+        loadAgents();
+      }
+    });
+    return card;
+  }
+
+  async function loadAgentLog() {
+    let entries = [];
+    try { entries = (await fetch("/api/agents/audit?limit=40").then(r => r.json())).entries || []; } catch { return; }
+    agentLog.innerHTML = entries.length ? entries.map(e => `
+      <li>
+        <time>${esc(new Date(e.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }))}</time>
+        <strong>${esc(e.agent)}</strong>
+        <span class="outcome ${esc(e.outcome)}">${esc(e.outcome)}</span>
+        <span class="tool">${esc(e.app)}:${esc(e.tool)}${e.reason ? " · " + esc(e.reason) : ""}</span>
+      </li>`).join("") : `<li style="display:block;color:var(--ink-muted);">No agent activity yet.</li>`;
+  }
+
+  document.getElementById("addAgentBtn").addEventListener("click", async () => {
+    const name = newAgentName.value.trim();
+    if (!name) { newAgentName.focus(); return; }
+    const resp = await fetch("/api/agents", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, apps: {}, context: [], create: true }),
+    });
+    if (resp.status === 409) { newAgentName.select(); gwStatus.textContent = (await resp.json()).error; return; }
+    newAgentName.value = "";
+    loadAgents();
+  });
+  newAgentName.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") document.getElementById("addAgentBtn").click();
+  });
 
   applyTheme(getSavedTheme());
   loadDailyNote();
