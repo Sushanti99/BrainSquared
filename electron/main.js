@@ -149,39 +149,93 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ── Quick capture (screenshot → todo) ────────────────────────────────────────
 let captureWindow = null;
+// Deliberately NON-interactive (`-x -m`): grabs the main display instantly.
+// The interactive variant (`screencapture -i`) seizes mouse and keyboard for
+// the entire machine until a selection is dragged or Esc is pressed — on a
+// multi-monitor setup the crosshair can appear on another display, leaving the
+// desktop looking frozen and every click swallowed. Never worth that risk.
+let captureProc = null;
+let captureTimer = null;
+
+function endCaptureProcess() {
+  if (captureTimer) { clearTimeout(captureTimer); captureTimer = null; }
+  if (captureProc) {
+    try { captureProc.kill('SIGKILL'); } catch (_) {}
+    captureProc = null;
+  }
+}
 
 function triggerQuickCapture() {
   if (process.platform === 'darwin' && systemPreferences.getMediaAccessStatus('screen') !== 'granted') {
     promptForScreenRecordingPermission();
     return;
   }
+  if (captureProc) {
+    console.log('[capture] already capturing; ignoring');
+    return;
+  }
+
   const tmpPath = path.join(os.tmpdir(), `brain-capture-${Date.now()}.png`);
-  execFile('/usr/sbin/screencapture', ['-i', tmpPath], () => {
-    // User pressed Esc during selection → no file written; treat as a silent no-op.
+  console.log('[capture] capturing screen');
+
+  captureProc = execFile('/usr/sbin/screencapture', ['-x', '-m', tmpPath], () => {
+    if (captureTimer) { clearTimeout(captureTimer); captureTimer = null; }
+    captureProc = null;
+    console.log('[capture] done; captured =', fs.existsSync(tmpPath));
     if (!fs.existsSync(tmpPath)) return;
     openCaptureWindow(tmpPath);
   });
+
+  // Safety net — a non-interactive capture takes ~0.2s, so anything still
+  // running after 10s is stuck and gets cleaned up.
+  captureTimer = setTimeout(() => {
+    if (captureProc) {
+      console.log('[capture] timed out — cleaning up');
+      endCaptureProcess();
+      try { fs.unlinkSync(tmpPath); } catch (_) {}
+    }
+  }, 10000);
 }
 
+let permissionPromptOpen = false;
+
 function promptForScreenRecordingPermission() {
+  // NOTE: do NOT pass mainWindow as the parent here. On macOS that renders the
+  // dialog as a window-modal sheet, which makes the entire app unclickable
+  // until it is dismissed — and if the sheet lands on another display or
+  // behind a window, the app just looks frozen. A parentless dialog is a
+  // normal window the user can always find and close.
+  if (permissionPromptOpen) return;
+  permissionPromptOpen = true;
+
+  // Also surface it in the app itself, so there's an on-screen explanation
+  // even if the OS dialog ends up somewhere unexpected.
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.show();
+    mainWindow.focus();
+    mainWindow.webContents.send('capture-permission-needed');
+  }
+
   dialog
-    .showMessageBox(mainWindow, {
+    .showMessageBox({
       type: 'info',
       title: 'Screen Recording access needed',
       message: 'BrainSquared needs Screen Recording access to capture screenshots for Quick Capture.',
       detail:
         "Quick Capture (⌘⇧K) takes a screenshot and adds it to today's note as a todo. " +
-        'To let it capture your screen, open System Settings → Privacy & Security → Screen Recording ' +
-        'and enable it for BrainSquared, then try the shortcut again.',
+        'Open System Settings → Privacy & Security → Screen Recording, add this app with the "+" ' +
+        'button if it is not listed, enable it, then quit and reopen BrainSquared.',
       buttons: ['Open System Settings', 'Not Now'],
       defaultId: 0,
       cancelId: 1,
     })
     .then(({ response }) => {
+      permissionPromptOpen = false;
       if (response === 0) {
-        shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture');
+        execFile('/usr/bin/open', ['x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture']);
       }
-    });
+    })
+    .catch(() => { permissionPromptOpen = false; });
 }
 
 function openCaptureWindow(imagePath) {
@@ -206,7 +260,12 @@ function openCaptureWindow(imagePath) {
     },
   });
   captureWindow.imagePath = imagePath;
-  captureWindow.once('ready-to-show', () => captureWindow.show());
+  // Wait for the renderer to confirm the thumbnail is painted before showing —
+  // avoids a flash of the transparent window with unpainted content behind it.
+  let shown = false;
+  const showOnce = () => { if (!shown) { shown = true; try { captureWindow.show(); } catch (_) {} } };
+  captureWindow.showWhenReady = showOnce;
+  setTimeout(showOnce, 600); // safety net in case the renderer never signals ready
   captureWindow.loadFile(path.join(__dirname, 'renderer', 'capture.html'));
 }
 
@@ -244,6 +303,17 @@ ipcMain.handle('capture-get-image', (event) => {
   return `data:image/png;base64,${data.toString('base64')}`;
 });
 
+ipcMain.handle('capture-ready', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (win && win.showWhenReady) win.showWhenReady();
+});
+
+// Lets the main app window (brain/web/index.html) trigger the exact same
+// capture flow as the ⌘⇧K global shortcut, e.g. from an in-UI button.
+ipcMain.handle('trigger-quick-capture', () => {
+  triggerQuickCapture();
+});
+
 ipcMain.handle('capture-submit', async (event, text) => {
   const win = BrowserWindow.fromWebContents(event.sender);
   const imagePath = win && win.imagePath;
@@ -263,6 +333,10 @@ ipcMain.handle('capture-submit', async (event, text) => {
     });
     notification.show();
   }
+
+  // Tell the main window to reload today's note so the new capture shows up
+  // immediately instead of only after a manual refresh.
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('capture-saved');
 
   // Leave the popup open a beat so the renderer can show its own success state,
   // then close it regardless of whether the renderer is still around to ask.
@@ -297,6 +371,11 @@ function createWindow() {
   mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 
   if (isDev && process.env.BRAIN_DEVTOOLS) mainWindow.webContents.openDevTools({ mode: 'detach' });
+  if (process.env.BRAIN_LOG_CONSOLE) {
+    mainWindow.webContents.on('console-message', (_e, _level, message) => {
+      console.log('[renderer]', message);
+    });
+  }
 
   mainWindow.webContents.on('did-finish-load', () => {
     if (pendingSignOut) {
@@ -329,42 +408,13 @@ ipcMain.handle('stop-server', async () => { stopServer(); return true; });
 
 ipcMain.handle('open-external', async (_e, url) => { await shell.openExternal(url); return true; });
 
-// Open Google/Supabase OAuth inside an Electron window. Reliably captures
-// the brainsquared:// redirect via will-redirect, no OS protocol registration
-// dance required.
+// Open Google/Supabase OAuth in the user's default browser. The redirect
+// back to brainsquared:// is handled by the OS via the registered protocol
+// (see app.setAsDefaultProtocolClient / 'open-url' below), which relays the
+// callback URL to the renderer as an 'auth-callback' event.
 ipcMain.handle('start-oauth', async (_e, authUrl) => {
-  return new Promise((resolve, reject) => {
-    const authWin = new BrowserWindow({
-      width: 500,
-      height: 700,
-      modal: true,
-      parent: mainWindow,
-      title: 'Sign in to brain²',
-      webPreferences: { nodeIntegration: false, contextIsolation: true, partition: 'auth' },
-    });
-    let settled = false;
-    const finish = (fn) => { if (!settled) { settled = true; try { authWin.close(); } catch {} fn(); } };
-
-    const inspect = (event, url) => {
-      if (url && url.startsWith(`${PROTOCOL}://`)) {
-        event.preventDefault();
-        console.log('[auth] captured oauth redirect:', url);
-        finish(() => resolve(url));
-      }
-    };
-
-    authWin.webContents.on('will-redirect', inspect);
-    authWin.webContents.on('will-navigate', inspect);
-    // Some browsers/Supabase emit a navigation that fails to a custom scheme
-    authWin.webContents.on('did-fail-load', (_e, _ec, _ed, validatedURL) => {
-      if (validatedURL && validatedURL.startsWith(`${PROTOCOL}://`)) {
-        finish(() => resolve(validatedURL));
-      }
-    });
-    authWin.on('closed', () => { if (!settled) { settled = true; reject(new Error('Sign-in window closed before completing.')); } });
-
-    authWin.loadURL(authUrl);
-  });
+  await shell.openExternal(authUrl);
+  return true;
 });
 
 ipcMain.handle('pick-vault', async () => {
@@ -393,6 +443,18 @@ app.whenReady().then(() => {
   createWindow();
   buildMenu();
   globalShortcut.register('CommandOrControl+Shift+K', triggerQuickCapture);
+
+  if (process.env.BRAIN_WINDOW_DEBUG) {
+    setInterval(() => {
+      const wins = BrowserWindow.getAllWindows().map((w) => {
+        const b = w.getBounds();
+        return `#${w.id} ${b.width}x${b.height}@${b.x},${b.y} visible=${w.isVisible()} focused=${w.isFocused()} onTop=${w.isAlwaysOnTop()} url=${(w.webContents.getURL() || '').slice(-40)}`;
+      });
+      console.log('[windows]', wins.length, '::', wins.join(' || '),
+        ':: appFocused=', !!BrowserWindow.getFocusedWindow(),
+        ':: screenPerm=', systemPreferences.getMediaAccessStatus('screen'));
+    }, 3000);
+  }
 });
 
 app.on('window-all-closed', () => {
@@ -404,10 +466,11 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow();
 });
 
-app.on('before-quit', () => stopServer());
+app.on('before-quit', () => { stopServer(); endCaptureProcess(); });
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
+  endCaptureProcess();
 });
 
 function buildMenu() {

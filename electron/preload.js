@@ -16,6 +16,15 @@ contextBridge.exposeInMainWorld('electron', {
   pickVault: () => ipcRenderer.invoke('pick-vault'),
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
   startOAuth: (authUrl) => ipcRenderer.invoke('start-oauth', authUrl),
+  triggerQuickCapture: () => ipcRenderer.invoke('trigger-quick-capture'),
+  onCaptureSaved: (handler) => {
+    ipcRenderer.removeAllListeners('capture-saved');
+    ipcRenderer.on('capture-saved', () => handler());
+  },
+  onCapturePermissionNeeded: (handler) => {
+    ipcRenderer.removeAllListeners('capture-permission-needed');
+    ipcRenderer.on('capture-permission-needed', () => handler());
+  },
   keychain: {
     get: (account) => ipcRenderer.invoke('keychain-get', account),
     set: (account, value) => ipcRenderer.invoke('keychain-set', { account, value }),

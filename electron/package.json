@@ -4,7 +4,10 @@
   "description": "brain² — your second brain that connects every tool you use",
   "main": "main.js",
   "scripts": {
+    "sync-web": "cp -R ../brain/web/. resources/BrainServer/_internal/brain/web/ 2>/dev/null || true",
+    "prestart": "npm run sync-web",
     "start": "electron .",
+    "predev": "npm run sync-web",
     "dev": "electron . --dev",
     "pack": "electron-builder --mac --dir",
     "dist": "electron-builder --mac"

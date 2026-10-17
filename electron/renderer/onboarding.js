@@ -54,7 +54,7 @@ async function signIn() {
   const btn = document.getElementById('signInBtn');
   btn.disabled = true;
   msg.className = 'info';
-  msg.textContent = 'Opening sign-in window…';
+  msg.textContent = 'Opening your browser…';
 
   try {
     const { data, error } = await supabase.auth.signInWithOAuth({
@@ -63,9 +63,11 @@ async function signIn() {
     });
     if (error) throw error;
 
-    msg.textContent = 'Waiting for Google sign-in…';
-    const callbackUrl = await window.electron.startOAuth(data.url);
-    await handleAuthCallbackUrl(callbackUrl);
+    // Opens in the system browser; the brainsquared:// redirect comes back
+    // via the OS protocol handler and lands in handleAuthCallbackUrl through
+    // the onAuthCallback listener registered below.
+    await window.electron.startOAuth(data.url);
+    msg.textContent = 'Waiting for Google sign-in in your browser…';
   } catch (err) {
     btn.disabled = false;
     msg.className = 'err';

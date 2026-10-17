@@ -6,7 +6,14 @@ const msgEl = document.getElementById('msg');
 
 async function init() {
   const dataUrl = await window.captureAPI.getImage();
-  if (dataUrl) thumb.src = dataUrl;
+  if (dataUrl) {
+    await new Promise((resolve) => {
+      thumb.onload = resolve;
+      thumb.onerror = resolve;
+      thumb.src = dataUrl;
+    });
+  }
+  await window.captureAPI.ready();
   captionInput.focus();
 }
 

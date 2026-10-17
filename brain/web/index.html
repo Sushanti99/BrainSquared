@@ -555,6 +555,20 @@
     }
     .regen-btn:hover { transform: translateY(-1px); }
     .regen-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .capture-btn {
+      background: var(--paper-sunken);
+      border: none;
+      border-radius: 999px;
+      width: 34px;
+      height: 34px;
+      font-size: 14px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 160ms;
+    }
+    .capture-btn:hover { transform: translateY(-1px); }
     .generate-btn {
       background: var(--ink);
       color: var(--paper);
@@ -714,14 +728,25 @@
       color: var(--ink-muted);
     }
     .capture-thumb {
-      display: block;
-      max-width: 320px;
-      max-height: 220px;
+      display: inline-block;
+      vertical-align: middle;
+      max-width: 200px;
+      max-height: 90px;
       width: auto;
-      border-radius: 10px;
-      margin-top: 6px;
+      border-radius: 8px;
+      margin-left: 8px;
       border: 1px solid var(--rule);
       object-fit: cover;
+      cursor: zoom-in;
+      transition: transform 160ms;
+    }
+    .capture-thumb:hover { transform: scale(1.04); }
+    .capture-thumb.expanded {
+      max-width: 100%;
+      max-height: 460px;
+      display: block;
+      margin: 8px 0 0;
+      cursor: zoom-out;
     }
     .daily-path {
       font-family: 'JetBrains Mono', monospace;
@@ -1734,6 +1759,7 @@
       <div class="regen-row">
         <button class="generate-btn" id="dailyBtn" type="button" style="display:none;">Generate Daily</button>
         <button class="regen-btn" id="refreshDailyBtn" type="button">↻ Regenerate</button>
+        <button class="capture-btn" id="quickCaptureBtn" type="button" title="Capture a screenshot as a todo">📷</button>
         <div class="settings-wrap" id="settingsWrap">
           <button class="settings-btn" id="settingsBtn" type="button" title="Tasks settings">⚙</button>
           <div class="settings-popover" id="settingsPopover">
@@ -1891,6 +1917,11 @@
     );
     return marked.parse(withThumbs);
   }
+  // Click a capture thumbnail to toggle between inline-size and full-size.
+  document.addEventListener("click", (event) => {
+    const img = event.target.closest && event.target.closest("img.capture-thumb");
+    if (img) img.classList.toggle("expanded");
+  });
   const messages = document.getElementById("messages");
   const statusEl = document.getElementById("status");
   const statusDot = document.getElementById("statusDot");
@@ -1923,6 +1954,7 @@
   const sendBtn = document.getElementById("sendBtn");
   const dailyBtn = document.getElementById("dailyBtn");
   const refreshDailyBtn = document.getElementById("refreshDailyBtn");
+  const quickCaptureBtn = document.getElementById("quickCaptureBtn");
   const settingsBtn = document.getElementById("settingsBtn");
   const settingsPopover = document.getElementById("settingsPopover");
   const endBtn = document.getElementById("endBtn");
@@ -2773,6 +2805,27 @@
     } finally {
       refreshDailyBtn.disabled = false;
     }
+  });
+
+  if (window.electron && window.electron.onCaptureSaved) {
+    window.electron.onCaptureSaved(async () => {
+      dailyOffset = 0;
+      await loadDailyNote();
+    });
+  }
+
+  if (window.electron && window.electron.onCapturePermissionNeeded) {
+    window.electron.onCapturePermissionNeeded(() => {
+      setDailyStatus("Quick Capture needs Screen Recording access — see the dialog, then reopen the app.");
+    });
+  }
+
+  quickCaptureBtn.addEventListener("click", async () => {
+    if (!window.electron || !window.electron.triggerQuickCapture) {
+      setDailyStatus("Quick Capture is only available in the desktop app.");
+      return;
+    }
+    await window.electron.triggerQuickCapture();
   });
 
   prevDayBtn.addEventListener("click", async () => {
