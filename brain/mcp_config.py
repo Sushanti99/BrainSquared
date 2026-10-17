@@ -318,10 +318,16 @@ def _add_codex_server(integration_id: str, credentials: Mapping[str, str]) -> No
 
 
 def add_server(integration_id: str, credentials: dict[str, str], *, agents: Iterable[str] | str | None = None) -> None:
-    """Write an MCP server entry for one or more agent backends."""
+    """Write an MCP server entry for one or more agent backends.
+
+    Backends routed through the BrainSquared gateway are skipped: giving them a
+    direct server would let them bypass the gateway's access rules.
+    """
     if integration_id not in _SERVERS:
         return
     for agent in _normalize_agents(agents):
+        if gateway_enabled(agent):
+            continue
         if agent == "claude-code":
             _add_claude_server(integration_id, credentials)
         elif agent == "codex":
@@ -411,8 +417,8 @@ def connected_integrations(agent: str | None = None) -> dict[str, bool]:
     return combined
 
 
-def sync_from_env(agent: str | None = None, environ: Mapping[str, str] | None = None) -> None:
-    """Mirror env-backed credentials into MCP config for the requested agent."""
+def credentials_from_env(environ: Mapping[str, str] | None = None) -> dict[str, dict[str, str]]:
+    """Return MCP credentials for every integration that is connected in the env."""
     env = os.environ if environ is None else environ
     mappings = {
         "github": {"api_key": env.get("GITHUB_TOKEN", "")},
@@ -423,18 +429,77 @@ def sync_from_env(agent: str | None = None, environ: Mapping[str, str] | None = 
             "team_id": env.get("SLACK_TEAM_ID", ""),
         },
     }
-    for integration_id, credentials in mappings.items():
-        if any(value for value in credentials.values()):
-            add_server(integration_id, credentials, agents=agent)
+    connected = {
+        integration_id: credentials
+        for integration_id, credentials in mappings.items()
+        if any(value for value in credentials.values())
+    }
 
     # Google: activate if token.json exists (OAuth already done via UI)
     token_file = env.get("GOOGLE_TOKEN_FILE", "")
-    credentials_file = env.get("GOOGLE_CREDENTIALS_FILE", "")
     if token_file and Path(token_file).exists():
-        add_server("google", {
-            "credentials_file": credentials_file,
+        connected["google"] = {
+            "credentials_file": env.get("GOOGLE_CREDENTIALS_FILE", ""),
             "token_file": token_file,
-        }, agents=agent)
+        }
+    return connected
+
+
+def sync_from_env(agent: str | None = None, environ: Mapping[str, str] | None = None) -> None:
+    """Mirror env-backed credentials into MCP config for the requested agent."""
+    for integration_id, credentials in credentials_from_env(environ).items():
+        add_server(integration_id, credentials, agents=agent)
+
+
+def server_spec(integration_id: str) -> dict[str, object] | None:
+    """The server definition the gateway uses to reach an integration itself."""
+    return _server_spec(integration_id, "claude-code")
+
+
+# ── BrainSquared gateway ──────────────────────────────────────────────────────
+# When a backend is routed through the gateway, its config holds one MCP server
+# ("brainsquared") pointing at the gateway, and no direct integration servers.
+
+GATEWAY_SERVER_NAME = "brainsquared"
+
+
+def gateway_enabled(agent: str) -> bool:
+    if agent == "claude-code":
+        return GATEWAY_SERVER_NAME in _read_claude_settings().get("mcpServers", {})
+    if agent == "codex":
+        return _codex_server_pattern(GATEWAY_SERVER_NAME).search(_read_codex_config()) is not None
+    return False
+
+
+def add_gateway(url: str, *, agents: Iterable[str] | str | None = None) -> None:
+    """Point the given backends at the gateway and drop their direct servers."""
+    for agent in _normalize_agents(agents):
+        if agent == "claude-code":
+            settings = _read_claude_settings()
+            servers = settings.setdefault("mcpServers", {})
+            for integration_id in _SERVERS:
+                servers.pop(integration_id, None)
+            servers[GATEWAY_SERVER_NAME] = {"type": "http", "url": url}
+            _write_claude_settings(settings)
+        elif agent == "codex":
+            for integration_id in _SERVERS:
+                _remove_codex_server(integration_id)
+            text = _replace_or_append_block(
+                _read_codex_config(),
+                _codex_server_pattern(GATEWAY_SERVER_NAME),
+                f"[mcp_servers.{GATEWAY_SERVER_NAME}]\nurl = {_toml_string(url)}",
+            )
+            _write_codex_config(_merge_codex_features(text, {"experimental_use_rmcp_client": True}))
+
+
+def remove_gateway(*, agents: Iterable[str] | str | None = None, environ: Mapping[str, str] | None = None) -> None:
+    """Stop routing the given backends through the gateway and restore direct servers."""
+    for agent in _normalize_agents(agents):
+        if agent == "claude-code":
+            _remove_claude_server(GATEWAY_SERVER_NAME)
+        elif agent == "codex":
+            _remove_codex_server(GATEWAY_SERVER_NAME)
+        sync_from_env(agent, environ)
 
 
 def supported_integrations() -> list[str]:
