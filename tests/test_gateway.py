@@ -80,7 +80,7 @@ def test_read_only_agent_sees_and_runs_only_read_tools(tmp_path):
         agent = policy.upsert_agent(policy.policy_path(system), "claude-code", apps={"fake": "read"})
         url = gw.gateway_url(agent.token, port=port)
 
-        assert _tool_names(url) == ["fake__list_messages"]
+        assert _tool_names(url) == ["fake__get_expired", "fake__list_messages"]
         result = _call(url, "fake__list_messages", {"limit": 2})
         assert not result.isError
         assert "message 2" in result.content[0].text
@@ -142,3 +142,13 @@ def test_unknown_token_is_rejected(tmp_path):
     with running_gateway(tmp_path) as (_system, port):
         response = httpx.post(gw.gateway_url("not-a-token", port=port), json={})
         assert response.status_code == 401
+
+
+def test_app_errors_are_logged_as_errors_not_allowed(tmp_path):
+    with running_gateway(tmp_path) as (system, port):
+        agent = policy.upsert_agent(policy.policy_path(system), "a", apps={"fake": "read"})
+        result = _call(gw.gateway_url(agent.token, port=port), "fake__get_expired", {})
+
+        assert result.isError
+        entry = policy.read_audit(policy.audit_path(system))[0]
+        assert entry["outcome"] == "error" and "invalid_grant" in entry["reason"]

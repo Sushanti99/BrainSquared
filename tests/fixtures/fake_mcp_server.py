@@ -17,5 +17,11 @@ def send_message(to: str, text: str) -> str:
     return f"sent to {to}: {text}"
 
 
+@mcp.tool()
+def get_expired() -> str:
+    """Read something whose login has expired."""
+    raise RuntimeError("invalid_grant: login expired")
+
+
 if __name__ == "__main__":
     mcp.run()

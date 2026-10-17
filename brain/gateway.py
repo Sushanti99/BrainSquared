@@ -267,7 +267,12 @@ class Gateway:
         except Exception as exc:
             self._audit(agent, app, tool, "error", str(exc), arguments)
             return _error(f"{APP_LABELS.get(app, app)} failed: {exc}")
-        self._audit(agent, app, tool, outcome, "", arguments)
+        if result.isError:
+            # Access was granted, but the app itself failed (expired login, bad input, ...).
+            message = next((block.text for block in result.content if isinstance(block, types.TextContent)), "")
+            self._audit(agent, app, tool, "error", message[:200], arguments)
+        else:
+            self._audit(agent, app, tool, outcome, "", arguments)
         return result
 
     def _context(self, agent: policy.AgentPolicy, query: str, limit: int) -> types.CallToolResult:
